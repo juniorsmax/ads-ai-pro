@@ -11,6 +11,7 @@ import Optimizer from './pages/Optimizer'
 import Copywriter from './pages/Copywriter'
 import Billing from './pages/Billing'
 import Sidebar from './components/shared/Sidebar'
+import MobileNav from './components/shared/MobileNav'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,7 +25,7 @@ export default function App() {
       <BrowserRouter>
         <div className="flex h-screen overflow-hidden">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto bg-slate-950">
+          <main className="flex-1 overflow-y-auto bg-slate-950 pb-16 md:pb-0">
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
@@ -40,6 +41,7 @@ export default function App() {
             </Routes>
           </main>
         </div>
+        <MobileNav />
       </BrowserRouter>
     </QueryClientProvider>
   )
