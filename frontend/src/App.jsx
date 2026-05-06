@@ -9,6 +9,7 @@ import Settings from './pages/Settings'
 import Onboarding from './pages/Onboarding'
 import Optimizer from './pages/Optimizer'
 import Copywriter from './pages/Copywriter'
+import Billing from './pages/Billing'
 import Sidebar from './components/shared/Sidebar'
 
 const queryClient = new QueryClient({
@@ -33,6 +34,7 @@ export default function App() {
               <Route path="/copywriter" element={<Copywriter />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/competitors" element={<Competitors />} />
+              <Route path="/billing" element={<Billing />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/onboarding" element={<Onboarding />} />
             </Routes>

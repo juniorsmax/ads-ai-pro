@@ -87,6 +87,32 @@ CREATE TABLE IF NOT EXISTS perfiles_marca (
   actualizado_en TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Perfiles de agencia (white-label) — Fase 3
+CREATE TABLE IF NOT EXISTS perfiles_agencia (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID NOT NULL UNIQUE REFERENCES usuarios(id) ON DELETE CASCADE,
+  nombre TEXT NOT NULL DEFAULT 'Mi Agencia',
+  logo_url TEXT,
+  color_primario TEXT DEFAULT '#1B3A6B',
+  email TEXT,
+  web TEXT,
+  actualizado_en TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Tokens para el portal de cliente (acceso read-only a reportes)
+CREATE TABLE IF NOT EXISTS portal_tokens (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  reporte_id UUID NOT NULL REFERENCES reportes(id) ON DELETE CASCADE,
+  token TEXT UNIQUE NOT NULL,
+  cliente_email TEXT,
+  expira_en TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '30 days'),
+  creado_en TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Campos Stripe en usuarios (migración)
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
+
 -- Índices para rendimiento
 CREATE INDEX IF NOT EXISTS idx_cuentas_usuario ON cuentas_vinculadas(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_logs_usuario ON logs_ia(usuario_id);
