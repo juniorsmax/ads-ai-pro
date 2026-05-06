@@ -113,6 +113,21 @@ CREATE TABLE IF NOT EXISTS portal_tokens (
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
 
+-- Lista de espera (waitlist) — Product Hunt launch
+CREATE TABLE IF NOT EXISTS waitlist (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email TEXT UNIQUE NOT NULL,
+  nombre TEXT,
+  tipo TEXT DEFAULT 'otro' CHECK (tipo IN ('autonomo', 'empresa', 'agencia', 'otro')),
+  fuente TEXT DEFAULT 'organico',
+  ip TEXT,
+  invitado BOOLEAN DEFAULT FALSE,
+  creado_en TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_waitlist_email ON waitlist(email);
+CREATE INDEX IF NOT EXISTS idx_waitlist_creado ON waitlist(creado_en DESC);
+
 -- Feedback de usuarios beta
 CREATE TABLE IF NOT EXISTS feedback (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

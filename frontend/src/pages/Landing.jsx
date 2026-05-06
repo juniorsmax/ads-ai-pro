@@ -118,6 +118,12 @@ function NavBar() {
             Iniciar sesión
           </Link>
           <Link
+            to="/waitlist"
+            className="text-sm bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 rounded-lg transition-colors font-medium hidden sm:block"
+          >
+            🐱 Acceso anticipado
+          </Link>
+          <Link
             to="/onboarding"
             className="text-sm bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors font-medium"
           >
@@ -204,10 +210,13 @@ function Hero() {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-blue-600/10 blur-3xl rounded-full pointer-events-none" />
 
       <div className="relative max-w-4xl mx-auto">
-        <div className="inline-flex items-center gap-2 text-xs text-blue-400 bg-blue-950/60 border border-blue-800/60 rounded-full px-4 py-1.5 mb-8">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-          La primera plataforma de Google Ads con IA en español
-        </div>
+        <Link
+          to="/waitlist"
+          className="inline-flex items-center gap-2 text-xs text-orange-400 bg-orange-950/50 border border-orange-800/50 rounded-full px-4 py-1.5 mb-8 hover:border-orange-600 transition-colors"
+        >
+          <span className="text-base">🐱</span>
+          Lanzamiento en Product Hunt España · Mayo 2026 — Apúntate para acceso anticipado →
+        </Link>
 
         <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight mb-6">
           Gestiona Google Ads{' '}
@@ -223,17 +232,17 @@ function Hero() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
           <Link
-            to="/onboarding"
-            className="w-full sm:w-auto px-8 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-colors text-base shadow-lg shadow-blue-900/40"
+            to="/waitlist"
+            className="w-full sm:w-auto px-8 py-3.5 bg-orange-500 hover:bg-orange-400 text-white font-semibold rounded-xl transition-colors text-base shadow-lg shadow-orange-900/40"
           >
-            Empezar gratis 14 días →
+            🐱 Quiero acceso anticipado →
           </Link>
-          <a
-            href="#como-funciona"
+          <Link
+            to="/onboarding"
             className="w-full sm:w-auto px-8 py-3.5 border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white font-medium rounded-xl transition-colors text-base"
           >
-            Ver cómo funciona
-          </a>
+            Empezar gratis 14 días
+          </Link>
         </div>
 
         <MockupDashboard />
@@ -428,6 +437,60 @@ function Footer() {
   )
 }
 
+function ProductHunt() {
+  return (
+    <section className="py-20 px-4 bg-slate-900/40">
+      <div className="max-w-3xl mx-auto text-center">
+        <p className="text-3xl mb-4">🐱</p>
+        <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
+          Lanzamos en Product Hunt España
+        </h2>
+        <p className="text-slate-400 mb-8 max-w-xl mx-auto">
+          Mayo 2026. Apúntate a la lista de espera y sé de los primeros en acceder.
+          Los primeros <span className="text-white font-semibold">100 registros</span> obtienen
+          3 meses gratis del plan Profesional.
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            to="/waitlist"
+            className="w-full sm:w-auto px-8 py-3.5 bg-orange-500 hover:bg-orange-400 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-orange-900/30"
+          >
+            Apuntarme a la lista →
+          </Link>
+          <a
+            href="https://www.producthunt.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto px-8 py-3.5 border border-slate-700 hover:border-orange-700 text-slate-300 hover:text-orange-400 font-medium rounded-xl transition-colors"
+          >
+            Ver en Product Hunt
+          </a>
+        </div>
+
+        {/* PH badge placeholder — activar con el enlace real tras el launch */}
+        <div className="mt-10 flex justify-center">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-800/50 flex items-center justify-center text-2xl">
+              🐱
+            </div>
+            <div className="text-left">
+              <p className="text-white font-semibold text-sm">ADSAI PRO</p>
+              <p className="text-slate-500 text-xs">Google Ads con IA en español · #1 del día</p>
+            </div>
+            <div className="ml-4 flex flex-col items-center border border-slate-700 rounded-xl px-4 py-2">
+              <span className="text-xs text-slate-500">▲</span>
+              <span className="text-white font-bold text-lg leading-none">—</span>
+              <span className="text-xs text-slate-500">votos</span>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-slate-600 mt-3">El contador se activará el día del lanzamiento</p>
+      </div>
+    </section>
+  )
+}
+
 // ── Página principal ──────────────────────────────────────────────────────────
 
 export default function Landing() {
@@ -439,6 +502,7 @@ export default function Landing() {
       <Features />
       <ComoFunciona />
       <Precios />
+      <ProductHunt />
       <CTAFinal />
       <Footer />
     </div>

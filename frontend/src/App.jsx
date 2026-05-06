@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Landing from './pages/Landing'
+import Waitlist from './pages/Waitlist'
 import Dashboard from './pages/Dashboard'
 import Campaigns from './pages/Campaigns'
 import Keywords from './pages/Keywords'
@@ -41,6 +42,7 @@ export default function App() {
         <Routes>
           {/* Landing — sin sidebar */}
           <Route path="/" element={<Landing />} />
+          <Route path="/waitlist" element={<Waitlist />} />
           <Route path="/onboarding" element={<Onboarding />} />
 
           {/* App — con sidebar */}

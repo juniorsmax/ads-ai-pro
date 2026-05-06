@@ -1,0 +1,52 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo -->
+  <rect width="1200" height="630" fill="#0f172a"/>
+
+  <!-- Glow central -->
+  <ellipse cx="600" cy="300" rx="400" ry="260" fill="#1e40af" fill-opacity="0.12"/>
+
+  <!-- Grid sutil -->
+  <line x1="0" y1="210" x2="1200" y2="210" stroke="#1e293b" stroke-width="1"/>
+  <line x1="0" y1="420" x2="1200" y2="420" stroke="#1e293b" stroke-width="1"/>
+  <line x1="300" y1="0" x2="300" y2="630" stroke="#1e293b" stroke-width="1"/>
+  <line x1="600" y1="0" x2="600" y2="630" stroke="#1e293b" stroke-width="1"/>
+  <line x1="900" y1="0" x2="900" y2="630" stroke="#1e293b" stroke-width="1"/>
+
+  <!-- Badge "Lanzamiento en Product Hunt" -->
+  <rect x="440" y="108" width="320" height="28" rx="14" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1"/>
+  <circle cx="460" cy="122" r="5" fill="#3b82f6"/>
+  <text x="472" y="127" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="600" fill="#93c5fd">Lanzamiento en Product Hunt España · Mayo 2026</text>
+
+  <!-- Logo -->
+  <text x="600" y="210" font-family="Inter, system-ui, sans-serif" font-size="72" font-weight="800" fill="white" text-anchor="middle" letter-spacing="-2">ADSAI <tspan fill="#3b82f6">PRO</tspan></text>
+
+  <!-- Tagline -->
+  <text x="600" y="275" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="500" fill="#94a3b8" text-anchor="middle">Gestiona Google Ads con IA en español</text>
+
+  <!-- Separador -->
+  <line x1="480" y1="308" x2="720" y2="308" stroke="#334155" stroke-width="1"/>
+
+  <!-- Tres features -->
+  <text x="260" y="360" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="white" text-anchor="middle">🇪🇸 100% en español</text>
+  <text x="260" y="382" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#64748b" text-anchor="middle">Interfaz y soporte nativos</text>
+
+  <text x="600" y="360" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="white" text-anchor="middle">💬 IA conversacional</text>
+  <text x="600" y="382" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#64748b" text-anchor="middle">Pregunta en español, responde con datos</text>
+
+  <text x="940" y="360" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="white" text-anchor="middle">📊 ROI real</text>
+  <text x="940" y="382" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#64748b" text-anchor="middle">No métricas de vanidad</text>
+
+  <!-- Separadores verticales features -->
+  <line x1="430" y1="345" x2="430" y2="395" stroke="#1e293b" stroke-width="1"/>
+  <line x1="770" y1="345" x2="770" y2="395" stroke="#1e293b" stroke-width="1"/>
+
+  <!-- CTA -->
+  <rect x="450" y="430" width="300" height="48" rx="12" fill="#2563eb"/>
+  <text x="600" y="460" font-family="Inter, system-ui, sans-serif" font-size="16" font-weight="700" fill="white" text-anchor="middle">Empieza gratis 14 días →</text>
+
+  <!-- URL -->
+  <text x="600" y="530" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#475569" text-anchor="middle">adsaipro.com</text>
+
+  <!-- Borde sutil -->
+  <rect x="1" y="1" width="1198" height="628" rx="0" stroke="#1e293b" stroke-width="2" fill="none"/>
+</svg>

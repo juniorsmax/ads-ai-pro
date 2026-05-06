@@ -23,6 +23,7 @@ app.use('/api/ai', require('./routes/ai'))
 app.use('/api/reports', require('./routes/reports'))
 app.use('/api/competitors', require('./routes/competitors'))
 app.use('/api/billing', require('./routes/stripe'))
+app.use('/api/waitlist', require('./routes/waitlist'))
 app.use('/api/feedback', require('./routes/feedback'))
 app.use('/api/push', require('./routes/push'))
 
