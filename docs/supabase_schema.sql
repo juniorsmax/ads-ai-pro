@@ -63,6 +63,30 @@ CREATE TABLE IF NOT EXISTS reportes (
   creado_en TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Alertas generadas por el monitor (Agente 4)
+CREATE TABLE IF NOT EXISTS alertas (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  cuenta_id UUID NOT NULL REFERENCES cuentas_vinculadas(id) ON DELETE CASCADE,
+  usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  nivel TEXT NOT NULL CHECK (nivel IN ('info', 'aviso', 'critico')),
+  alertas JSONB DEFAULT '[]',
+  resumen TEXT,
+  leida BOOLEAN DEFAULT FALSE,
+  creado_en TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Perfiles de marca para el copywriter (Agente 3)
+CREATE TABLE IF NOT EXISTS perfiles_marca (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  cuenta_id UUID NOT NULL REFERENCES cuentas_vinculadas(id) ON DELETE CASCADE,
+  sector TEXT,
+  tono TEXT DEFAULT 'profesional',
+  usps TEXT[],
+  keywords_principales TEXT[],
+  restricciones TEXT,
+  actualizado_en TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Índices para rendimiento
 CREATE INDEX IF NOT EXISTS idx_cuentas_usuario ON cuentas_vinculadas(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_logs_usuario ON logs_ia(usuario_id);

@@ -7,6 +7,8 @@ import Reports from './pages/Reports'
 import Competitors from './pages/Competitors'
 import Settings from './pages/Settings'
 import Onboarding from './pages/Onboarding'
+import Optimizer from './pages/Optimizer'
+import Copywriter from './pages/Copywriter'
 import Sidebar from './components/shared/Sidebar'
 
 const queryClient = new QueryClient({
@@ -27,6 +29,8 @@ export default function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/campaigns" element={<Campaigns />} />
               <Route path="/keywords" element={<Keywords />} />
+              <Route path="/optimizer" element={<Optimizer />} />
+              <Route path="/copywriter" element={<Copywriter />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/competitors" element={<Competitors />} />
               <Route path="/settings" element={<Settings />} />

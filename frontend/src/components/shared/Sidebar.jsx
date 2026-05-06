@@ -4,6 +4,8 @@ const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: '◈' },
   { to: '/campaigns', label: 'Campañas', icon: '◉' },
   { to: '/keywords', label: 'Keywords', icon: '◎' },
+  { to: '/optimizer', label: 'Optimizador', icon: '↕' },
+  { to: '/copywriter', label: 'Copywriter', icon: '✎' },
   { to: '/reports', label: 'Reportes', icon: '◷' },
   { to: '/competitors', label: 'Competidores', icon: '◈' },
   { to: '/settings', label: 'Ajustes', icon: '◌' },
@@ -18,7 +20,7 @@ export default function Sidebar() {
         </span>
         <span className="md:hidden text-lg font-bold text-blue-400">A</span>
       </div>
-      <nav className="flex-1 p-2 space-y-1 mt-2">
+      <nav className="flex-1 p-2 space-y-1 mt-2 overflow-y-auto">
         {NAV_ITEMS.map((item) => (
           <NavLink
             key={item.to}
@@ -31,7 +33,7 @@ export default function Sidebar() {
               }`
             }
           >
-            <span className="text-base">{item.icon}</span>
+            <span className="text-base w-4 text-center">{item.icon}</span>
             <span className="hidden md:block">{item.label}</span>
           </NavLink>
         ))}

@@ -29,4 +29,6 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`ADSAI PRO backend corriendo en http://localhost:${PORT}`)
+  const { initScheduler } = require('./services/scheduler')
+  initScheduler()
 })
