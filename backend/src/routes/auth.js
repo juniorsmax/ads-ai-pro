@@ -2,6 +2,7 @@ const router = require('express').Router()
 const { OAuth2Client } = require('google-auth-library')
 const jwt = require('jsonwebtoken')
 const supabase = require('../services/supabase')
+const { authCallback } = require('../middleware/validators')
 
 const oauthClient = new OAuth2Client(
   process.env.GOOGLE_ADS_CLIENT_ID,
@@ -26,7 +27,7 @@ router.get('/google', (req, res) => {
 })
 
 // POST /api/auth/callback — intercambia código por tokens y crea sesión
-router.post('/callback', async (req, res) => {
+router.post('/callback', authCallback, async (req, res) => {
   const { code } = req.body
   if (!code) return res.status(400).json({ error: 'Código de autorización requerido' })
 

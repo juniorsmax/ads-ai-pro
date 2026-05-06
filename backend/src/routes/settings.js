@@ -1,9 +1,10 @@
 const router = require('express').Router()
 const auth = require('../middleware/auth')
 const supabase = require('../services/supabase')
+const { whitelabelSave } = require('../middleware/validators')
 
 // POST /api/settings/whitelabel — guardar configuración de marca
-router.post('/whitelabel', auth, async (req, res) => {
+router.post('/whitelabel', auth, whitelabelSave, async (req, res) => {
   const { nombre, logo_url, color_primario, dominio_personalizado } = req.body
 
   const { error } = await supabase.from('perfiles_agencia').upsert({

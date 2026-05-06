@@ -1,5 +1,7 @@
 const router = require('express').Router()
 const auth = require('../middleware/auth')
+const { chatPorUsuario } = require('../middleware/rateLimiter')
+const { aiChat, aiAnalyze, aiOptimize, aiCopy, aiCopyAudit, aiAlertsCheck } = require('../middleware/validators')
 const orchestrator = require('../agents/orchestrator')
 const performanceAnalyst = require('../agents/performanceAnalyst')
 const optimizer = require('../agents/optimizer')
@@ -8,8 +10,8 @@ const { checkAccount } = require('../agents/alertMonitor')
 const supabase = require('../services/supabase')
 const cache = require('../services/cache')
 
-// POST /api/ai/chat — orquestador principal
-router.post('/chat', auth, async (req, res) => {
+// POST /api/ai/chat — orquestador principal (20 msg/hora por usuario)
+router.post('/chat', auth, chatPorUsuario, aiChat, async (req, res) => {
   const { mensaje, historial, cuentaId, objetivos } = req.body
   if (!mensaje?.trim()) return res.status(400).json({ error: 'Mensaje requerido' })
 
@@ -34,7 +36,7 @@ router.post('/chat', auth, async (req, res) => {
 })
 
 // POST /api/ai/analyze — análisis de rendimiento (Agente 1)
-router.post('/analyze', auth, async (req, res) => {
+router.post('/analyze', auth, aiAnalyze, async (req, res) => {
   const { cuentaId } = req.body
   if (!cuentaId) return res.status(400).json({ error: 'cuentaId requerido' })
 
@@ -54,7 +56,7 @@ router.post('/analyze', auth, async (req, res) => {
 })
 
 // POST /api/ai/optimize — optimizador de pujas y presupuesto (Agente 2)
-router.post('/optimize', auth, async (req, res) => {
+router.post('/optimize', auth, aiOptimize, async (req, res) => {
   const { cuentaId, objetivos } = req.body
   if (!cuentaId) return res.status(400).json({ error: 'cuentaId requerido' })
 
@@ -74,7 +76,7 @@ router.post('/optimize', auth, async (req, res) => {
 })
 
 // POST /api/ai/copy — copywriter IA (Agente 3)
-router.post('/copy', auth, async (req, res) => {
+router.post('/copy', auth, aiCopy, async (req, res) => {
   const { tipo = 'RSA', keywords, perfilMarca, copiesActuales } = req.body
 
   try {
@@ -88,7 +90,7 @@ router.post('/copy', auth, async (req, res) => {
 })
 
 // POST /api/ai/copy/audit — auditoría de copies existentes
-router.post('/copy/audit', auth, async (req, res) => {
+router.post('/copy/audit', auth, aiCopyAudit, async (req, res) => {
   const { copies } = req.body
   if (!copies?.length) return res.status(400).json({ error: 'copies requeridos' })
 
@@ -102,7 +104,7 @@ router.post('/copy/audit', auth, async (req, res) => {
 })
 
 // POST /api/ai/alerts/check — chequeo manual de alertas
-router.post('/alerts/check', auth, async (req, res) => {
+router.post('/alerts/check', auth, aiAlertsCheck, async (req, res) => {
   const { cuentaId } = req.body
   if (!cuentaId) return res.status(400).json({ error: 'cuentaId requerido' })
 

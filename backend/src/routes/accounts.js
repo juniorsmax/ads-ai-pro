@@ -4,6 +4,7 @@ const supabase = require('../services/supabase')
 const googleAds = require('../services/googleAds')
 const cache = require('../services/cache')
 const { compressAccountData } = require('../utils/dataCompressor')
+const { linkAccount } = require('../middleware/validators')
 
 // GET /api/accounts — listar cuentas vinculadas del usuario
 router.get('/', auth, async (req, res) => {
@@ -38,7 +39,7 @@ router.get('/accessible', auth, async (req, res) => {
 })
 
 // POST /api/accounts/link — vincular una cuenta Google Ads
-router.post('/link', auth, async (req, res) => {
+router.post('/link', auth, linkAccount, async (req, res) => {
   const { customerId, nombre } = req.body
   if (!customerId) return res.status(400).json({ error: 'customer_id requerido' })
 

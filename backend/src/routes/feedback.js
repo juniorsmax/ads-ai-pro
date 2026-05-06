@@ -1,9 +1,10 @@
 const router = require('express').Router()
 const auth = require('../middleware/auth')
 const supabase = require('../services/supabase')
+const { feedbackCreate } = require('../middleware/validators')
 
 // POST /api/feedback — enviar feedback (requiere auth)
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, feedbackCreate, async (req, res) => {
   const { tipo, mensaje, nps, pagina, metadata } = req.body
 
   if (!tipo || !mensaje?.trim()) {

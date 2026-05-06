@@ -1,16 +1,11 @@
 const router = require('express').Router()
 const supabase = require('../services/supabase')
+const { waitlistSignup } = require('../middleware/validators')
 
 // POST /api/waitlist — apuntarse a la lista de espera (público, sin auth)
-router.post('/', async (req, res) => {
+router.post('/', waitlistSignup, async (req, res) => {
   const { email, nombre, tipo } = req.body
-
-  if (!email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ error: 'Email inválido' })
-  }
-
-  const tiposValidos = ['autonomo', 'empresa', 'agencia', 'otro']
-  const tipoFinal = tiposValidos.includes(tipo) ? tipo : 'otro'
+  const tipoFinal = ['autonomo', 'empresa', 'agencia', 'otro'].includes(tipo) ? tipo : 'otro'
 
   const { error } = await supabase.from('waitlist').insert({
     email: email.trim().toLowerCase(),
