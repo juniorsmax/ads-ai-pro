@@ -13,6 +13,7 @@ import Copywriter from './pages/Copywriter'
 import Billing from './pages/Billing'
 import Sidebar from './components/shared/Sidebar'
 import MobileNav from './components/shared/MobileNav'
+import FeedbackWidget from './components/shared/FeedbackWidget'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,6 +29,7 @@ function AppLayout({ children }) {
         {children}
       </main>
       <MobileNav />
+      <FeedbackWidget />
     </div>
   )
 }

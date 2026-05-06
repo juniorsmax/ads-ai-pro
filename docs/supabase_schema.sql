@@ -113,6 +113,44 @@ CREATE TABLE IF NOT EXISTS portal_tokens (
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
 
+-- Feedback de usuarios beta
+CREATE TABLE IF NOT EXISTS feedback (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  tipo TEXT NOT NULL CHECK (tipo IN ('bug', 'sugerencia', 'comentario')),
+  mensaje TEXT NOT NULL,
+  nps SMALLINT CHECK (nps BETWEEN 0 AND 10),
+  pagina TEXT,
+  metadata JSONB DEFAULT '{}',
+  creado_en TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_usuario ON feedback(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_tipo ON feedback(tipo);
+CREATE INDEX IF NOT EXISTS idx_feedback_creado ON feedback(creado_en DESC);
+
+ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "feedback_propio_insert" ON feedback FOR INSERT WITH CHECK (
+  usuario_id IN (SELECT id FROM usuarios WHERE google_id = auth.uid()::text)
+);
+CREATE POLICY "feedback_propio_select" ON feedback FOR SELECT USING (
+  usuario_id IN (SELECT id FROM usuarios WHERE google_id = auth.uid()::text)
+);
+
+-- Suscripciones push (Fase 4)
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  endpoint TEXT NOT NULL,
+  keys JSONB NOT NULL,
+  activa BOOLEAN DEFAULT TRUE,
+  creado_en TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(endpoint)
+);
+
+-- Dominio personalizado white-label en perfiles_agencia
+ALTER TABLE perfiles_agencia ADD COLUMN IF NOT EXISTS dominio_personalizado TEXT;
+
 -- Índices para rendimiento
 CREATE INDEX IF NOT EXISTS idx_cuentas_usuario ON cuentas_vinculadas(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_logs_usuario ON logs_ia(usuario_id);

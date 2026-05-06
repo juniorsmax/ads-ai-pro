@@ -23,6 +23,8 @@ app.use('/api/ai', require('./routes/ai'))
 app.use('/api/reports', require('./routes/reports'))
 app.use('/api/competitors', require('./routes/competitors'))
 app.use('/api/billing', require('./routes/stripe'))
+app.use('/api/feedback', require('./routes/feedback'))
+app.use('/api/push', require('./routes/push'))
 
 app.get('/health', (req, res) => res.json({ ok: true, version: '0.1.0' }))
 
