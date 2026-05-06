@@ -1,20 +1,40 @@
+const Anthropic = require('@anthropic-ai/sdk')
 const conversational = require('./conversational')
 const performanceAnalyst = require('./performanceAnalyst')
 const optimizer = require('./optimizer')
 const copywriter = require('./copywriter')
 
-function detectIntent(mensaje) {
-  const m = mensaje.toLowerCase()
-  if (/analiz|diagnos|rendimiento|problema|anomal|caída|bajó|subió/.test(m)) return 'analyze'
-  if (/optim|puja|presupuesto|redistrib|pausa|activ|bid/.test(m)) return 'optimize'
-  if (/copy|anuncio|texto|headline|descripci|rsa|pmax/.test(m)) return 'copy'
-  if (/reporte|informe|pdf|exportar/.test(m)) return 'report'
-  if (/competidor|competencia|rival/.test(m)) return 'competitor'
-  return 'chat'
+const client = new Anthropic()
+
+const INTENTS_VALIDOS = ['analyze', 'optimize', 'copy', 'competitors', 'report', 'general']
+
+const SYSTEM_CLASSIFY = `Clasifica el mensaje del usuario en UNA de estas categorías y responde SOLO con esa palabra:
+- analyze: quiere analizar rendimiento, diagnosticar problemas, ver métricas, entender por qué algo bajó o subió
+- optimize: quiere optimizar pujas, presupuesto, pausar/activar campañas o keywords, redistribuir gasto
+- copy: quiere generar o mejorar textos de anuncios, headlines, descripciones, RSA, PMax
+- competitors: pregunta sobre competidores, competencia, auction insights, rivales
+- report: quiere un reporte, informe, exportar datos, resumen en PDF
+- general: cualquier otra consulta, saludo o pregunta general
+
+Responde únicamente con una de las seis palabras.`
+
+async function detectIntent(mensaje) {
+  try {
+    const response = await client.messages.create({
+      model: process.env.CLAUDE_CHEAP_MODEL ?? 'claude-haiku-4-5-20251001',
+      max_tokens: 10,
+      system: SYSTEM_CLASSIFY,
+      messages: [{ role: 'user', content: mensaje }],
+    })
+    const intent = response.content[0].text.trim().toLowerCase()
+    return INTENTS_VALIDOS.includes(intent) ? intent : 'general'
+  } catch {
+    return 'general'
+  }
 }
 
 async function handle({ mensaje, historial, accountSummary, objetivos, copyContexto }) {
-  const intent = detectIntent(mensaje)
+  const intent = await detectIntent(mensaje)
 
   switch (intent) {
     case 'analyze':
@@ -32,7 +52,7 @@ async function handle({ mensaje, historial, accountSummary, objetivos, copyConte
     case 'copy':
       return { tipo: 'copy', contenido: await copywriter.generateCopy('RSA', copyContexto ?? {}) }
 
-    case 'chat':
+    case 'general':
     default:
       return { tipo: 'texto', contenido: await conversational.chat(mensaje, historial, accountSummary) }
   }
