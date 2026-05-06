@@ -55,7 +55,7 @@ async function generateCopy(tipo = 'RSA', contexto) {
   }
 
   const response = await client.messages.create({
-    model: process.env.CLAUDE_DEFAULT_MODEL ?? 'claude-sonnet-4-6',
+    model: process.env.CLAUDE_SONNET ?? 'claude-sonnet-4-6',
     max_tokens: 2000,
     system: SYSTEM_PROMPT,
     messages: [
@@ -91,15 +91,16 @@ async function generateCopy(tipo = 'RSA', contexto) {
       })) ?? []
     }
 
-    return resultado ?? { tipo, headlines: [], descriptions: [], error: 'No se pudo parsear la respuesta' }
+    const data = resultado ?? { tipo, headlines: [], descriptions: [], error: 'No se pudo parsear la respuesta' }
+    return { data, usage: response.usage, model: response.model }
   } catch {
-    return { tipo, headlines: [], descriptions: [], error: texto }
+    return { data: { tipo, headlines: [], descriptions: [], error: texto }, usage: response.usage, model: response.model }
   }
 }
 
 async function auditCopy(copies) {
   const response = await client.messages.create({
-    model: process.env.CLAUDE_DEFAULT_MODEL ?? 'claude-sonnet-4-6',
+    model: process.env.CLAUDE_SONNET ?? 'claude-sonnet-4-6',
     max_tokens: 1000,
     system: SYSTEM_PROMPT,
     messages: [
@@ -113,9 +114,10 @@ async function auditCopy(copies) {
   const texto = response.content[0].text
   try {
     const match = texto.match(/\{[\s\S]*\}/)
-    return match ? JSON.parse(match[0]) : { auditoria: [] }
+    const data = match ? JSON.parse(match[0]) : { auditoria: [] }
+    return { data, usage: response.usage, model: response.model }
   } catch {
-    return { auditoria: [], raw: texto }
+    return { data: { auditoria: [], raw: texto }, usage: response.usage, model: response.model }
   }
 }
 

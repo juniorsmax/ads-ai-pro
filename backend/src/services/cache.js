@@ -37,4 +37,4 @@ async function del(key) {
   await client.del(key)
 }
 
-module.exports = { get, set, del, TTL }
+module.exports = { get, set, del, TTL, getClient }

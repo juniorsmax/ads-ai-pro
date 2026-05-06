@@ -19,7 +19,7 @@ Responde SOLO con JSON válido. Sin texto adicional.`
 async function generateReport({ accountSummary, perfilAgencia, periodo }) {
   // Haiku para estructura de datos (barato)
   const estructuraRes = await client.messages.create({
-    model: process.env.CLAUDE_CHEAP_MODEL ?? 'claude-haiku-4-5',
+    model: process.env.CLAUDE_HAIKU ?? 'claude-haiku-4-5',
     max_tokens: 800,
     system: SYSTEM_ESTRUCTURA,
     messages: [{
@@ -37,7 +37,7 @@ ${JSON.stringify(accountSummary)}`,
 
   // Sonnet para narrativa ejecutiva (calidad)
   const narrativaRes = await client.messages.create({
-    model: process.env.CLAUDE_DEFAULT_MODEL ?? 'claude-sonnet-4-6',
+    model: process.env.CLAUDE_SONNET ?? 'claude-sonnet-4-6',
     max_tokens: 500,
     system: SYSTEM_NARRATIVA,
     messages: [{

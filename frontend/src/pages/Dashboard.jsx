@@ -96,7 +96,7 @@ export default function Dashboard() {
         </div>
       </div>
       <div className="w-80 hidden xl:flex flex-col border-l border-slate-800 p-4">
-        <ChatPanel />
+        <ChatPanel cuentaId={cuentaActivaId} />
       </div>
     </div>
   )

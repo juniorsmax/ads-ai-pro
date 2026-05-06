@@ -18,29 +18,34 @@ Reglas:
 - Si la pregunta no está relacionada con Google Ads o marketing digital, redirige amablemente`
 
 async function chat(pregunta, historial, accountSummary) {
+  const mensajes = buildMessages(pregunta, historial, accountSummary)
+
+  const response = await client.messages.create({
+    model: process.env.CLAUDE_SONNET ?? 'claude-sonnet-4-6',
+    max_tokens: 800,
+    system: SYSTEM_PROMPT,
+    messages: mensajes,
+  })
+
+  return { data: response.content[0].text, usage: response.usage, model: response.model }
+}
+
+// Construye el array de mensajes (reutilizado por chat y chatStream)
+function buildMessages(pregunta, historial, accountSummary) {
   const contextoTexto = accountSummary
     ? `CONTEXTO DE LA CUENTA (datos actuales):\n${JSON.stringify(accountSummary, null, 2)}`
     : 'No hay datos de cuenta disponibles aún.'
 
-  // Construir mensajes: contexto cacheado + historial + pregunta actual
   const mensajes = [
     {
       role: 'user',
       content: [
-        {
-          type: 'text',
-          text: contextoTexto,
-          cache_control: { type: 'ephemeral' }, // El contexto de cuenta se cachea
-        },
-        {
-          type: 'text',
-          text: `Pregunta del usuario: ${pregunta}`,
-        },
+        { type: 'text', text: contextoTexto, cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: `Pregunta del usuario: ${pregunta}` },
       ],
     },
   ]
 
-  // Añadir historial de conversación si existe (máximo últimos 10 turnos)
   if (historial?.length > 0) {
     const historialReciente = historial.slice(-10)
     mensajes[0].content.splice(1, 0, {
@@ -49,14 +54,26 @@ async function chat(pregunta, historial, accountSummary) {
     })
   }
 
-  const response = await client.messages.create({
-    model: process.env.CLAUDE_DEFAULT_MODEL ?? 'claude-sonnet-4-6',
+  return mensajes
+}
+
+// Variante streaming: envía deltas de texto vía la función sse() proporcionada
+async function chatStream(pregunta, historial, accountSummary, sse) {
+  const mensajes = buildMessages(pregunta, historial, accountSummary)
+
+  const stream = client.messages.stream({
+    model: process.env.CLAUDE_SONNET ?? 'claude-sonnet-4-6',
     max_tokens: 800,
     system: SYSTEM_PROMPT,
     messages: mensajes,
   })
 
-  return response.content[0].text
+  for await (const text of stream.textStream) {
+    sse('delta', { text })
+  }
+
+  const msg = await stream.finalMessage()
+  return { usage: msg.usage, model: msg.model }
 }
 
-module.exports = { chat }
+module.exports = { chat, chatStream }

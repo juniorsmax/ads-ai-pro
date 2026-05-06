@@ -1,12 +1,13 @@
 const router = require('express').Router()
 const auth = require('../middleware/auth')
 const { injectPlan, requireFeature } = require('../middleware/planCheck')
+const { checkCircuitBreaker } = require('../middleware/planLimiter')
 const { generateReport, renderHTML } = require('../agents/reportGenerator')
 const supabase = require('../services/supabase')
 const cache = require('../services/cache')
 
 // POST /api/reports/generate — genera reporte white-label
-router.post('/generate', auth, injectPlan, async (req, res) => {
+router.post('/generate', auth, injectPlan, checkCircuitBreaker, async (req, res) => {
   const { cuentaId, periodo = 'Últimos 30 días' } = req.body
   if (!cuentaId) return res.status(400).json({ error: 'cuentaId requerido' })
 

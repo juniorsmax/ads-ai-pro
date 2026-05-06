@@ -1,4 +1,6 @@
 import { NavLink } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { getUsageIA } from '../../api/ai'
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: '◈' },
@@ -14,6 +16,44 @@ const NAV_BOTTOM = [
   { to: '/billing', label: 'Facturación', icon: '€' },
   { to: '/settings', label: 'Ajustes', icon: '◌' },
 ]
+
+function UsageBadge() {
+  const { data } = useQuery({
+    queryKey: ['ia-usage'],
+    queryFn: getUsageIA,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  })
+
+  if (!data) return null
+  const { mensajes, iaPausada } = data
+  const { usadas, limite, porcentaje } = mensajes
+
+  if (iaPausada) {
+    return (
+      <div className="hidden md:block px-3 py-2 rounded-lg bg-red-950 border border-red-800">
+        <p className="text-xs text-red-400 font-medium">IA pausada</p>
+        <p className="text-xs text-red-500">Límite diario alcanzado</p>
+      </div>
+    )
+  }
+
+  if (!limite) return null  // plan ilimitado, no mostrar barra
+
+  const color = porcentaje >= 90 ? 'bg-red-500' : porcentaje >= 70 ? 'bg-yellow-500' : 'bg-blue-500'
+
+  return (
+    <div className="hidden md:block px-3 py-2">
+      <div className="flex justify-between text-xs text-slate-400 mb-1">
+        <span>Mensajes IA</span>
+        <span>{usadas}/{limite}</span>
+      </div>
+      <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${porcentaje}%` }} />
+      </div>
+    </div>
+  )
+}
 
 export default function Sidebar() {
   return (
@@ -61,6 +101,7 @@ export default function Sidebar() {
             <span className="hidden md:block">{item.label}</span>
           </NavLink>
         ))}
+        <UsageBadge />
         <div className="hidden md:flex items-center gap-2 px-3 py-2">
           <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-xs text-white font-bold shrink-0">
             F

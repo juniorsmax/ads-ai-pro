@@ -51,4 +51,15 @@ const waitlist = rateLimit({
   ...mensaje429('Demasiados registros desde esta IP. Espera 1 hora.'),
 })
 
-module.exports = { general, ia, chatPorUsuario, auth, waitlist }
+// 5 req / hora — IPs no autenticadas en rutas de IA
+// Las requests con token de auth saltan este límite (tienen su propio control por usuario/plan)
+const iaNoAuth = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => !!req.headers.authorization,
+  ...mensaje429('Límite de 5 consultas/hora para acceso no autenticado.'),
+})
+
+module.exports = { general, ia, chatPorUsuario, auth, waitlist, iaNoAuth }

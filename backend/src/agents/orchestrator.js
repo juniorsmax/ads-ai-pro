@@ -21,41 +21,63 @@ Responde únicamente con una de las seis palabras.`
 async function detectIntent(mensaje) {
   try {
     const response = await client.messages.create({
-      model: process.env.CLAUDE_CHEAP_MODEL ?? 'claude-haiku-4-5-20251001',
+      model: process.env.CLAUDE_HAIKU ?? 'claude-haiku-4-5',
       max_tokens: 10,
       system: SYSTEM_CLASSIFY,
       messages: [{ role: 'user', content: mensaje }],
     })
     const intent = response.content[0].text.trim().toLowerCase()
-    return INTENTS_VALIDOS.includes(intent) ? intent : 'general'
+    return {
+      intent: INTENTS_VALIDOS.includes(intent) ? intent : 'general',
+      usage: response.usage,
+      model: response.model,
+    }
   } catch {
-    return 'general'
+    return { intent: 'general', usage: null, model: null }
   }
 }
 
 async function handle({ mensaje, historial, accountSummary, objetivos, copyContexto }) {
-  const intent = await detectIntent(mensaje)
+  const { intent, usage: usageIntent, model: modelIntent } = await detectIntent(mensaje)
+  const usages = usageIntent ? [{ model: modelIntent, usage: usageIntent }] : []
+
+  let tipo, contenido, subResult
 
   switch (intent) {
     case 'analyze':
       if (!accountSummary) {
-        return { tipo: 'texto', contenido: 'Necesito datos de tu cuenta para hacer el análisis. Sincroniza tu cuenta de Google Ads primero.' }
+        return { tipo: 'texto', contenido: 'Necesito datos de tu cuenta para hacer el análisis. Sincroniza tu cuenta de Google Ads primero.', usages }
       }
-      return { tipo: 'analisis', contenido: await performanceAnalyst.analyze(accountSummary) }
+      subResult = await performanceAnalyst.analyze(accountSummary)
+      tipo = 'analisis'
+      contenido = subResult.data
+      break
 
     case 'optimize':
       if (!accountSummary) {
-        return { tipo: 'texto', contenido: 'Necesito datos actuales de tu cuenta para generar recomendaciones de optimización.' }
+        return { tipo: 'texto', contenido: 'Necesito datos actuales de tu cuenta para generar recomendaciones de optimización.', usages }
       }
-      return { tipo: 'optimizacion', contenido: await optimizer.optimize(accountSummary, objetivos) }
+      subResult = await optimizer.optimize(accountSummary, objetivos)
+      tipo = 'optimizacion'
+      contenido = subResult.data
+      break
 
     case 'copy':
-      return { tipo: 'copy', contenido: await copywriter.generateCopy('RSA', copyContexto ?? {}) }
+      subResult = await copywriter.generateCopy('RSA', copyContexto ?? {})
+      tipo = 'copy'
+      contenido = subResult.data
+      break
 
     case 'general':
     default:
-      return { tipo: 'texto', contenido: await conversational.chat(mensaje, historial, accountSummary) }
+      subResult = await conversational.chat(mensaje, historial, accountSummary)
+      tipo = 'texto'
+      contenido = subResult.data
+      break
   }
+
+  if (subResult?.usage) usages.push({ model: subResult.model, usage: subResult.usage })
+  return { tipo, contenido, usages }
 }
 
 module.exports = { handle, detectIntent }
