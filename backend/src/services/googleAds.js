@@ -112,6 +112,31 @@ async function getAccessibleAccounts(refreshToken) {
   return customer.listAccessibleCustomers()
 }
 
+// Métricas diarias de los últimos 30 días para el gráfico de rendimiento
+async function getDailyMetrics(refreshToken, customerId) {
+  const customer = await getCustomer(refreshToken, customerId)
+
+  const rows = await customer.query(`
+    SELECT
+      segments.date,
+      metrics.cost_micros,
+      metrics.conversions,
+      metrics.clicks,
+      metrics.impressions
+    FROM customer
+    WHERE segments.date DURING LAST_30_DAYS
+    ORDER BY segments.date ASC
+  `)
+
+  return rows.map(row => ({
+    fecha: row.segments.date.slice(5),  // "MM-DD"
+    gasto: parseFloat(microsToEuros(row.metrics.cost_micros).toFixed(2)),
+    conversiones: row.metrics.conversions,
+    clics: row.metrics.clicks,
+    impresiones: row.metrics.impressions,
+  }))
+}
+
 const microsToEuros = (micros) => (micros ?? 0) / 1_000_000
 
-module.exports = { getAccountSummary, getProblemKeywords, getAccessibleAccounts }
+module.exports = { getAccountSummary, getProblemKeywords, getDailyMetrics, getAccessibleAccounts }

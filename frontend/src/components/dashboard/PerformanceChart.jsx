@@ -10,12 +10,23 @@ const DATOS_DEMO = [
   { fecha: '6 May', gasto: 178, conversiones: 15 },
 ]
 
-export default function PerformanceChart({ datos = DATOS_DEMO }) {
+export default function PerformanceChart({ datos, cargando = false }) {
+  const puntos = datos?.length ? datos : DATOS_DEMO
+  const esDemo = !datos?.length
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-      <p className="text-sm font-medium text-white mb-4">Rendimiento — Últimos 7 días</p>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm font-medium text-white">Rendimiento — Últimos 30 días</p>
+        {esDemo && !cargando && (
+          <span className="text-xs text-slate-600 italic">datos de ejemplo</span>
+        )}
+        {cargando && (
+          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        )}
+      </div>
       <ResponsiveContainer width="100%" height={200}>
-        <LineChart data={datos}>
+        <LineChart data={puntos}>
           <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
           <XAxis dataKey="fecha" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
           <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
