@@ -38,7 +38,7 @@ function AppLayout({ children }) {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           {/* Landing — sin sidebar */}
           <Route path="/" element={<Landing />} />
