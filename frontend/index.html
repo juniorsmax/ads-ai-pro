@@ -39,6 +39,18 @@
 
     <!-- Tema -->
     <meta name="theme-color" content="#0f172a" />
+
+    <!-- Recupera la ruta tras el redirect de 404.html en GitHub Pages -->
+    <script>
+      (function () {
+        var p = window.location.search.match(/[?&]p=([^&]*)/);
+        if (p) {
+          window.history.replaceState(null, null,
+            decodeURIComponent(p[1]) + window.location.hash
+          );
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

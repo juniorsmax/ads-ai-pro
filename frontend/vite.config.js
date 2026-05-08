@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  base: process.env.GITHUB_ACTIONS ? '/ads-ai-pro/' : '/',
   server: {
     port: 5173,
     proxy: {
