@@ -3,6 +3,7 @@ const express = require('express')
 const auth = require('../middleware/auth')
 const stripeService = require('../services/stripe')
 const supabase = require('../services/supabase')
+const analytics = require('../services/analytics')
 
 // GET /api/billing/planes — lista de planes disponibles
 router.get('/planes', (req, res) => {
@@ -99,25 +100,51 @@ async function processWebhookEvent(event) {
         stripe_customer_id: sub.customer,
         stripe_subscription_id: sub.subscription,
       }).eq('id', usuarioId)
+      analytics.subscriptionCreated(usuarioId, {
+        plan: planKey,
+        precioCents: sub.amount_total ?? 0,
+      })
       console.log(`[Stripe] Plan ${planKey} activado para usuario ${usuarioId}`)
       break
     }
     case 'customer.subscription.updated': {
       const planKey = sub.metadata?.planKey
-      if (!planKey || !sub.metadata?.usuarioId) break
+      const usuarioId = sub.metadata?.usuarioId
+      if (!planKey || !usuarioId) break
+      const { data: usuarioActual } = await supabase
+        .from('usuarios')
+        .select('plan')
+        .eq('id', usuarioId)
+        .single()
       await supabase.from('usuarios').update({
         plan: planKey,
         stripe_subscription_id: sub.id,
-      }).eq('id', sub.metadata.usuarioId)
+      }).eq('id', usuarioId)
+      if (usuarioActual?.plan && usuarioActual.plan !== planKey) {
+        analytics.subscriptionUpgraded(usuarioId, {
+          planAnterior: usuarioActual.plan,
+          planNuevo: planKey,
+          precioCents: sub.plan?.amount ?? 0,
+        })
+      }
       break
     }
     case 'customer.subscription.deleted': {
-      if (!sub.metadata?.usuarioId) break
+      const usuarioId = sub.metadata?.usuarioId
+      if (!usuarioId) break
+      const { data: usuarioActual } = await supabase
+        .from('usuarios')
+        .select('plan')
+        .eq('id', usuarioId)
+        .single()
       await supabase.from('usuarios').update({
         plan: 'basico',
         stripe_subscription_id: null,
-      }).eq('id', sub.metadata.usuarioId)
-      console.log(`[Stripe] Suscripción cancelada para usuario ${sub.metadata.usuarioId}`)
+      }).eq('id', usuarioId)
+      analytics.subscriptionCancelled(usuarioId, {
+        plan: usuarioActual?.plan ?? 'desconocido',
+      })
+      console.log(`[Stripe] Suscripción cancelada para usuario ${usuarioId}`)
       break
     }
   }

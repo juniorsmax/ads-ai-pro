@@ -4,6 +4,7 @@ import TopBar from '../components/shared/TopBar'
 import LoadingState from '../components/shared/LoadingState'
 import { useCuentaStore } from '../store/cuentaStore'
 import { getKeywords } from '../api/keywords'
+import { analytics } from '../lib/analytics'
 
 const fmt = (n, dec = 2) => n != null ? n.toLocaleString('es-ES', { maximumFractionDigits: dec }) : '—'
 
@@ -105,7 +106,7 @@ export default function Keywords() {
                 {ORDEN_OPCIONES.map(o => (
                   <button
                     key={o.id}
-                    onClick={() => setOrden(o.id)}
+                    onClick={() => { setOrden(o.id); analytics.keywordsFiltered(o.id) }}
                     className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
                       orden === o.id
                         ? 'bg-blue-600 border-blue-500 text-white'

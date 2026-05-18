@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useCuentaStore } from '../../store/cuentaStore'
 import { getCuentas } from '../../api/accounts'
+import { clarityTag } from '../../lib/clarity'
 
 export default function AccountSwitcher() {
   const [abierto, setAbierto] = useState(false)
@@ -38,7 +39,7 @@ export default function AccountSwitcher() {
             {cuentas.map(c => (
               <button
                 key={c.id}
-                onClick={() => { setCuentaActiva(c.id); setAbierto(false) }}
+                onClick={() => { setCuentaActiva(c.id); clarityTag('cuenta_id', c.id); setAbierto(false) }}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-slate-800 ${
                   c.id === cuentaActivaId ? 'bg-blue-900/30 text-blue-300' : 'text-slate-300'
                 }`}
