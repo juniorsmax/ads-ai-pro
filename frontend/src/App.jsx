@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { trackPage } from './lib/analytics'
+import { trackPage, identifyUser } from './lib/analytics'
+import { clarityIdentify, clarityTag } from './lib/clarity'
+import { getUsuarioLocal, estaAutenticado } from './api/auth'
 import Landing from './pages/Landing'
 import Waitlist from './pages/Waitlist'
 import Dashboard from './pages/Dashboard'
@@ -34,6 +36,17 @@ function PageTracker() {
 }
 
 function AppLayout({ children }) {
+  useEffect(() => {
+    if (estaAutenticado()) {
+      const u = getUsuarioLocal()
+      if (u) {
+        identifyUser(u.id, { email: u.email, plan: u.plan, createdAt: u.created_at })
+        clarityIdentify(u.id, null, null, u.email)
+        clarityTag('plan', u.plan ?? 'sin_plan')
+      }
+    }
+  }, [])
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />

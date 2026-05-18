@@ -4,6 +4,7 @@ import TopBar from '../components/shared/TopBar'
 import CopyCard from '../components/copywriter/CopyCard'
 import LoadingState from '../components/shared/LoadingState'
 import { generarCopy } from '../api/ai'
+import { analytics } from '../lib/analytics'
 const TIPOS = ['RSA', 'PMAX', 'DISPLAY']
 
 export default function Copywriter() {
@@ -28,6 +29,7 @@ export default function Copywriter() {
       },
       []
     ),
+    onSuccess: () => analytics.aiCopyGenerated(tipo),
   })
 
   const limitesActivos = { headline: 30, description: 90 }

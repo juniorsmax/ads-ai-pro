@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { API } from '../api/client'
+import { api } from '../api/client'
 
 const PLATFORM_META = {
   google_ads:       { label: 'Google Ads',   color: '#4285F4', icon: '🔵' },
@@ -19,7 +19,7 @@ const DATE_RANGES = [
 ]
 
 async function fetchMultiPlatform(accounts, dateRange) {
-  return API.post('/supermetrics/multiplatform', { accounts, dateRange })
+  return api.post('/supermetrics/multiplatform', { accounts, dateRange })
 }
 
 function PlatformCard({ platform, result }) {

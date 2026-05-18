@@ -5,6 +5,7 @@ import RecomendacionCard from '../components/optimizer/RecomendacionCard'
 import LoadingState from '../components/shared/LoadingState'
 import { optimizarCuenta } from '../api/ai'
 import { getCuentas } from '../api/accounts'
+import { analytics } from '../lib/analytics'
 
 export default function Optimizer() {
   const [cuentaId, setCuentaId] = useState(null)
@@ -21,6 +22,7 @@ export default function Optimizer() {
       roasObjetivo: objetivos.roasObjetivo ? Number(objetivos.roasObjetivo) : null,
       presupuestoMensual: objetivos.presupuestoMensual ? Number(objetivos.presupuestoMensual) : null,
     }),
+    onSuccess: () => analytics.aiOptimizerRun(cuentaId),
   })
 
   return (

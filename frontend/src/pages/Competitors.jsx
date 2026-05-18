@@ -4,6 +4,7 @@ import TopBar from '../components/shared/TopBar'
 import LoadingState from '../components/shared/LoadingState'
 import { getCuentas } from '../api/accounts'
 import { getCompetitors, refreshCompetitors } from '../api/competitors'
+import { analytics } from '../lib/analytics'
 
 const AMENAZA_ESTILO = {
   alta: 'text-red-400 bg-red-900/30 border-red-800',
@@ -34,7 +35,10 @@ export default function Competitors() {
 
   const refreshMutation = useMutation({
     mutationFn: () => refreshCompetitors(cuentaId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['competitors', cuentaId] }),
+    onSuccess: () => {
+      analytics.competitorsChecked(cuentaId)
+      queryClient.invalidateQueries({ queryKey: ['competitors', cuentaId] })
+    },
   })
 
   return (

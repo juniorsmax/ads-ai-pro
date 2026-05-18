@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { API } from '../api/client'
+import { api } from '../api/client'
 
-async function fetchVPSList()            { return API.get('/hostinger/vps') }
-async function fetchMetrics(id)          { return API.get(`/hostinger/vps/${id}/metrics`) }
-async function fetchHistory(id, period)  { return API.get(`/hostinger/vps/${id}/metrics/history?period=${period}`) }
+async function fetchVPSList()            { return api.get('/hostinger/vps') }
+async function fetchMetrics(id)          { return api.get(`/hostinger/vps/${id}/metrics`) }
+async function fetchHistory(id, period)  { return api.get(`/hostinger/vps/${id}/metrics/history?period=${period}`) }
 
 function GaugeBar({ label, value, max = 100, unit = '%', color = 'blue' }) {
   const pct = Math.min(100, Math.round((value / max) * 100))

@@ -4,6 +4,7 @@ import TopBar from '../components/shared/TopBar'
 import LoadingState from '../components/shared/LoadingState'
 import { generarReporte, getReportes } from '../api/reports'
 import { useCuentaStore } from '../store/cuentaStore'
+import { analytics } from '../lib/analytics'
 
 const PERIODOS = ['Últimos 7 días', 'Últimos 30 días', 'Este mes', 'Mes anterior']
 
@@ -20,6 +21,7 @@ export default function Reports() {
   const mutation = useMutation({
     mutationFn: () => generarReporte(cuentaActivaId, periodo),
     onSuccess: async (data) => {
+      analytics.reportGenerated(cuentaActivaId, periodo)
       refetch()
       // Cargar HTML del reporte generado
       if (data.reporteId) {

@@ -1,7 +1,9 @@
+import { useEffect } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import TopBar from '../components/shared/TopBar'
 import { getPlanes, iniciarCheckout, abrirPortalStripe } from '../api/billing'
+import { analytics } from '../lib/analytics'
 
 const FEATURES = {
   basico: ['1 cuenta Google Ads', 'Dashboard + análisis IA', '50 consultas al chat/mes', 'Alertas automáticas', 'Reportes semanales'],
@@ -14,10 +16,15 @@ export default function Billing() {
   const success = params.get('success')
   const cancel = params.get('cancel')
 
+  useEffect(() => { analytics.billingPageViewed() }, [])
+
   const { data: planes = [] } = useQuery({ queryKey: ['planes'], queryFn: getPlanes })
 
   const checkoutMutation = useMutation({
-    mutationFn: (plan) => iniciarCheckout(plan),
+    mutationFn: (plan) => {
+      analytics.checkoutStarted(plan)
+      return iniciarCheckout(plan)
+    },
     onSuccess: ({ url }) => { window.location.href = url },
   })
 
@@ -71,7 +78,7 @@ export default function Billing() {
                   ))}
                 </ul>
                 <button
-                  onClick={() => checkoutMutation.mutate(plan.key)}
+                  onClick={() => { analytics.planSelected(plan.key, plan.precio * 100); checkoutMutation.mutate(plan.key) }}
                   disabled={checkoutMutation.isPending}
                   className={`w-full py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     esAgencia

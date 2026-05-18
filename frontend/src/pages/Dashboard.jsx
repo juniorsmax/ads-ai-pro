@@ -10,6 +10,7 @@ import LoadingState from '../components/shared/LoadingState'
 import { useCuentaStore } from '../store/cuentaStore'
 import { getResumenCuenta } from '../api/accounts'
 import { getDailyMetrics } from '../api/campaigns'
+import { analytics } from '../lib/analytics'
 
 const fmt = (n, dec = 0) => n != null ? n.toLocaleString('es-ES', { maximumFractionDigits: dec }) : '—'
 
@@ -84,9 +85,10 @@ export default function Dashboard() {
               {resumen.anomalies?.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs text-slate-500 uppercase tracking-wider">Alertas activas</p>
-                  {resumen.anomalies.map((a, i) => (
-                    <AlertBadge key={i} severidad={a.level ?? 'aviso'} mensaje={a.message ?? a} />
-                  ))}
+                  {resumen.anomalies.map((a, i) => {
+                    analytics.alertViewed(a.id ?? i, a.tipo ?? 'kpi', a.level ?? 'aviso', cuentaActivaId)
+                    return <AlertBadge key={i} severidad={a.level ?? 'aviso'} mensaje={a.message ?? a} />
+                  })}
                 </div>
               )}
 
