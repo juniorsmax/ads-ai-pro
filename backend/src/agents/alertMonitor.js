@@ -3,6 +3,7 @@ const supabase = require('../services/supabase')
 const cache = require('../services/cache')
 const { registrarUso, estaIAPausada } = require('../services/tokenTracker')
 const analytics = require('../services/analytics')
+const { notificarAlerta } = require('../services/integraciones')
 
 // Haiku para clasificaciones simples — 20x más barato que Sonnet
 const client = new Anthropic()
@@ -126,6 +127,9 @@ async function runForAllAccounts() {
         alertas: resultado.alertas,
         resumen: resultado.resumen,
       }).catch(() => {})
+
+      notificarAlerta(cuenta.usuario_id, `Alerta ${resultado.nivel.toUpperCase()}`, resultado.resumen)
+        .catch(err => console.error('[AlertMonitor] Notificación fallida:', err.message))
 
       // Traquear cada alerta en PostHog para el embudo: alert_triggered → alert_viewed → acción
       for (const alerta of resultado.alertas) {
