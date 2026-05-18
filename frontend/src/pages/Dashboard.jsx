@@ -10,9 +10,54 @@ import LoadingState from '../components/shared/LoadingState'
 import { useCuentaStore } from '../store/cuentaStore'
 import { getResumenCuenta } from '../api/accounts'
 import { getDailyMetrics } from '../api/campaigns'
+import { getPacing } from '../api/auditoria'
 import { analytics } from '../lib/analytics'
 
 const fmt = (n, dec = 0) => n != null ? n.toLocaleString('es-ES', { maximumFractionDigits: dec }) : '—'
+
+function PacingWidget({ cuentaActivaId }) {
+  const { data } = useQuery({
+    queryKey: ['pacing', cuentaActivaId],
+    queryFn: () => getPacing(cuentaActivaId),
+    enabled: !!cuentaActivaId,
+    retry: false,
+    staleTime: 10 * 60 * 1000,
+  })
+
+  if (!data) return null
+
+  const hoy = new Date()
+  const diasMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate()
+  const diasTranscurridos = hoy.getDate()
+  const porcentajeGastado = data.presupuestoMes > 0 ? (data.gastoActual / data.presupuestoMes) * 100 : 0
+  const pacingIdeal = (diasTranscurridos / diasMes) * 100
+  const desviacion = porcentajeGastado - pacingIdeal
+  const estado = desviacion > 10 ? 'overpacing' : desviacion < -10 ? 'underpacing' : 'ok'
+
+  const colorBarra = estado === 'overpacing' ? 'bg-red-500' : estado === 'underpacing' ? 'bg-yellow-500' : 'bg-green-500'
+  const etiqueta   = estado === 'overpacing' ? 'Overpacing' : estado === 'underpacing' ? 'Underpacing' : 'En ritmo'
+  const colorEtiq  = estado === 'overpacing' ? 'text-red-400' : estado === 'underpacing' ? 'text-yellow-400' : 'text-green-400'
+
+  return (
+    <div className="bg-slate-900 border border-slate-800 border-l-2 border-l-blue-600 rounded-xl px-5 py-4">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs text-slate-500 uppercase tracking-wider">Budget Pacing</p>
+        <span className={`text-xs font-medium ${colorEtiq}`}>{etiqueta}</span>
+      </div>
+      <div className="flex items-baseline gap-2 mb-2">
+        <p className="text-lg font-bold text-white">€{fmt(data.gastoActual, 0)}</p>
+        <p className="text-sm text-slate-500">de €{fmt(data.presupuestoMes, 0)}</p>
+      </div>
+      <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden mb-1">
+        <div className={`h-full rounded-full transition-all ${colorBarra}`} style={{ width: `${Math.min(porcentajeGastado, 100)}%` }} />
+      </div>
+      <div className="flex justify-between text-xs text-slate-600">
+        <span>{fmt(porcentajeGastado, 0)}% gastado</span>
+        <span>Día {diasTranscurridos}/{diasMes}</span>
+      </div>
+    </div>
+  )
+}
 
 function mapearEstado(status, cpa, avgCpa) {
   if (status === 'paused') return 'pausada'
@@ -79,6 +124,8 @@ export default function Dashboard() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {kpis.map((kpi, i) => <KPICard key={i} {...kpi} />)}
               </div>
+
+              <PacingWidget cuentaActivaId={cuentaActivaId} />
 
               <PerformanceChart datos={dailyData?.datos} cargando={cargandoDaily} />
 
