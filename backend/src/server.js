@@ -88,5 +88,10 @@ const server = app.listen(PORT, () => {
 
 process.on('SIGTERM', () => {
   console.log('SIGTERM recibido — cerrando servidor...')
-  server.close(() => { console.log('Servidor cerrado correctamente'); process.exit(0) })
+  const analytics = require('./services/analytics')
+  server.close(async () => {
+    await analytics.shutdown()
+    console.log('Servidor cerrado correctamente')
+    process.exit(0)
+  })
 })

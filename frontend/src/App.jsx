@@ -1,5 +1,7 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import { trackPage } from './lib/analytics'
 import Landing from './pages/Landing'
 import Waitlist from './pages/Waitlist'
 import Dashboard from './pages/Dashboard'
@@ -22,6 +24,12 @@ const queryClient = new QueryClient({
   },
 })
 
+function PageTracker() {
+  const location = useLocation()
+  useEffect(() => { trackPage(location.pathname) }, [location.pathname])
+  return null
+}
+
 function AppLayout({ children }) {
   return (
     <div className="flex h-screen overflow-hidden">
@@ -39,6 +47,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <PageTracker />
         <Routes>
           {/* Landing — sin sidebar */}
           <Route path="/" element={<Landing />} />

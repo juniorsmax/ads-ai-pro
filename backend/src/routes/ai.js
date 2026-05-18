@@ -11,6 +11,7 @@ const conversational = require('../agents/conversational')
 const { checkAccount } = require('../agents/alertMonitor')
 const { registrarUso, estaIAPausada, getCosteDiario } = require('../services/tokenTracker')
 const { PLANES } = require('../services/stripe')
+const analytics = require('../services/analytics')
 const supabase = require('../services/supabase')
 const cache = require('../services/cache')
 
@@ -82,6 +83,7 @@ router.get('/usage', auth, async (req, res) => {
 router.post('/chat', auth, chatPorUsuario, ...checkIA, aiChat, async (req, res) => {
   const { mensaje, historial, cuentaId, objetivos } = req.body
   if (!mensaje?.trim()) return res.status(400).json({ error: 'Mensaje requerido' })
+  const t0 = Date.now()
 
   const accountSummary = cuentaId ? await cache.get(`account_summary:${cuentaId}`) : null
 
@@ -98,6 +100,14 @@ router.post('/chat', auth, chatPorUsuario, ...checkIA, aiChat, async (req, res) 
 
     await logIA(req.user.userId, cuentaId, 'orquestador', mensaje,
       typeof resultado.contenido === 'string' ? resultado.contenido : JSON.stringify(resultado.contenido))
+
+    const latencyMs = Date.now() - t0
+    const lastUsage = (resultado.usages ?? []).findLast(u => u)
+    if (lastUsage) {
+      analytics.aiAgentCompleted(req.user.userId, 'orquestador', {
+        model: lastUsage.model, usage: lastUsage.usage, latencyMs, cuentaId,
+      })
+    }
 
     res.json({ tipo: resultado.tipo, contenido: resultado.contenido })
   } catch (err) {
@@ -179,10 +189,14 @@ router.post('/analyze', auth, ...checkIA, aiAnalyze, async (req, res) => {
     return res.status(400).json({ error: 'Sincroniza la cuenta primero para obtener datos actuales' })
   }
 
+  const t0 = Date.now()
   try {
     const { data: analisis, usage, model, fromRule } = await performanceAnalyst.analyze(accountSummary, cuentaId)
     await registrarUso(req.user.userId, 'analista', model, usage)
     if (!fromRule) await logIA(req.user.userId, cuentaId, 'analista', 'analyze', analisis)
+    analytics.aiAgentCompleted(req.user.userId, 'analista', {
+      model, usage, latencyMs: Date.now() - t0, cuentaId, fromCache: fromRule ?? false,
+    })
     res.json({ analisis, fromRule: fromRule ?? false })
   } catch (err) {
     console.error('[AI analyze]', err.message)
@@ -200,10 +214,14 @@ router.post('/optimize', auth, ...checkIA, aiOptimize, async (req, res) => {
     return res.status(400).json({ error: 'Sincroniza la cuenta primero' })
   }
 
+  const t0 = Date.now()
   try {
     const { data: recomendaciones, usage, model, fromRule } = await optimizer.optimize(accountSummary, objetivos ?? {}, cuentaId)
     await registrarUso(req.user.userId, 'optimizador', model, usage)
     if (!fromRule) await logIA(req.user.userId, cuentaId, 'optimizador', 'optimize', JSON.stringify(recomendaciones))
+    analytics.aiAgentCompleted(req.user.userId, 'optimizador', {
+      model, usage, latencyMs: Date.now() - t0, cuentaId, fromCache: fromRule ?? false,
+    })
     res.json({ ...recomendaciones, fromRule: fromRule ?? false })
   } catch (err) {
     console.error('[AI optimize]', err.message)
@@ -215,10 +233,14 @@ router.post('/optimize', auth, ...checkIA, aiOptimize, async (req, res) => {
 router.post('/copy', auth, ...checkIA, aiCopy, async (req, res) => {
   const { tipo = 'RSA', keywords, perfilMarca, copiesActuales } = req.body
 
+  const t0 = Date.now()
   try {
     const { data: copies, usage, model } = await copywriter.generateCopy(tipo, { keywords, perfilMarca, copiesActuales })
     await registrarUso(req.user.userId, 'copywriter', model, usage)
     await logIA(req.user.userId, null, 'copywriter', tipo, JSON.stringify(copies))
+    analytics.aiAgentCompleted(req.user.userId, 'copywriter', {
+      model, usage, latencyMs: Date.now() - t0,
+    })
     res.json(copies)
   } catch (err) {
     console.error('[AI copy]', err.message)
