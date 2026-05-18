@@ -70,6 +70,9 @@ app.use('/api/feedback', require('./routes/feedback'))
 app.use('/api/push', require('./routes/push'))
 app.use('/api/hostinger', require('./routes/hostinger'))
 app.use('/api/supermetrics', require('./routes/supermetrics'))
+app.use('/api/auditoria', require('./routes/auditoria'))
+app.use('/api/integraciones', require('./routes/integraciones'))
+app.use('/api/optimizer', require('./routes/optimizer'))
 
 // ── Health & error handler ────────────────────────────────────────────────────
 

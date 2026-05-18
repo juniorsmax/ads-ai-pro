@@ -2,6 +2,17 @@ const Anthropic = require('@anthropic-ai/sdk')
 
 const client = new Anthropic()
 
+// Escapa todos los caracteres HTML peligrosos — previene XSS en el template de reporte
+function esc(str) {
+  if (str == null) return ''
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 const SYSTEM_NARRATIVA = `Eres el redactor de reportes ejecutivos de ADSAI PRO. Escribes para clientes finales que NO son expertos en Google Ads.
 
 Normas:
@@ -65,43 +76,64 @@ function renderHTML(reporte) {
   const { periodo, estructurado, narrativa, perfilAgencia } = reporte
   const { kpis = [], topCampanas = [], alertas = [] } = estructurado
 
-  const logoHTML = perfilAgencia?.logoUrl
-    ? `<img src="${perfilAgencia.logoUrl}" alt="${perfilAgencia.nombre}" style="height:48px; object-fit:contain;">`
-    : `<span style="font-size:22px; font-weight:700; color:${perfilAgencia?.colorPrimario ?? '#1B3A6B'};">${perfilAgencia?.nombre ?? 'Mi Agencia'}</span>`
+  // Campos de agencia — snake_case desde la DB, con fallbacks seguros
+  const agenciaNombre    = esc(perfilAgencia?.nombre ?? perfilAgencia?.nombre ?? 'Mi Agencia')
+  const agenciaColor     = /^#[0-9A-Fa-f]{6}$/.test(perfilAgencia?.color_primario ?? '') ? perfilAgencia.color_primario : '#1B3A6B'
+  const agenciaLogoUrl   = perfilAgencia?.logo_url ?? null
+  const agenciaEmail     = esc(perfilAgencia?.email ?? '')
 
-  const kpisHTML = kpis.map(k => `
+  // El src del logo se valida como URL https — evita javascript: y data: URIs
+  const logoHTML = agenciaLogoUrl && /^https:\/\/.+/.test(agenciaLogoUrl)
+    ? `<img src="${esc(agenciaLogoUrl)}" alt="${agenciaNombre}" style="height:48px; object-fit:contain;">`
+    : `<span style="font-size:22px; font-weight:700; color:${agenciaColor};">${agenciaNombre}</span>`
+
+  const kpisHTML = kpis.map(k => {
+    const nombre = esc(k.nombre)
+    const valor  = esc(k.valor)
+    const cambio = esc(k.cambio)
+    const color  = cambio.startsWith('+') ? '#22c55e' : '#ef4444'
+    return `
     <div style="background:#f8fafc; border-radius:10px; padding:16px; text-align:center; min-width:120px;">
-      <div style="font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">${k.nombre}</div>
-      <div style="font-size:22px; font-weight:700; color:#1e293b;">${k.valor}</div>
-      ${k.cambio ? `<div style="font-size:11px; color:${k.cambio.startsWith('+') ? '#22c55e' : '#ef4444'};">${k.cambio} vs anterior</div>` : ''}
-    </div>`).join('')
+      <div style="font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">${nombre}</div>
+      <div style="font-size:22px; font-weight:700; color:#1e293b;">${valor}</div>
+      ${cambio ? `<div style="font-size:11px; color:${color};">${cambio} vs anterior</div>` : ''}
+    </div>`
+  }).join('')
 
   const campanaFilas = topCampanas.map(c => `
     <tr>
-      <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0;">${c.nombre ?? c.name ?? '—'}</td>
-      <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:right;">${c.gasto ?? c.cost ?? '—'}</td>
-      <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:right;">${c.conversiones ?? c.conversions ?? '—'}</td>
-      <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:right;">${c.cpa ?? '—'}</td>
+      <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0;">${esc(c.nombre ?? c.name ?? '—')}</td>
+      <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:right;">${esc(c.gasto ?? c.cost ?? '—')}</td>
+      <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:right;">${esc(c.conversiones ?? c.conversions ?? '—')}</td>
+      <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:right;">${esc(c.cpa ?? '—')}</td>
     </tr>`).join('')
 
   const alertasHTML = alertas.length > 0
-    ? alertas.map(a => `<li style="margin-bottom:6px; color:#64748b;">${typeof a === 'string' ? a : a.mensaje ?? JSON.stringify(a)}</li>`).join('')
+    ? alertas.map(a => `<li style="margin-bottom:6px; color:#64748b;">${esc(typeof a === 'string' ? a : a.mensaje ?? '')}</li>`).join('')
     : '<li style="color:#64748b;">Sin alertas este período</li>'
 
+  // La narrativa de la IA se escapa completamente — no puede contener HTML
   const narrativaParrafos = narrativa
     .split('\n')
     .filter(l => l.trim())
-    .map(l => l.startsWith('#') || l.startsWith('**')
-      ? `<h3 style="font-size:15px; font-weight:600; color:#1e293b; margin:18px 0 8px;">${l.replace(/[#*]/g, '').trim()}</h3>`
-      : `<p style="color:#475569; line-height:1.7; margin:0 0 10px;">${l}</p>`)
+    .map(l => {
+      const limpio = esc(l.replace(/^[#*\s]+/, '').trim())
+      return l.startsWith('#') || l.startsWith('**')
+        ? `<h3 style="font-size:15px; font-weight:600; color:#1e293b; margin:18px 0 8px;">${limpio}</h3>`
+        : `<p style="color:#475569; line-height:1.7; margin:0 0 10px;">${limpio}</p>`
+    })
     .join('')
+
+  const periodoEsc = esc(periodo)
+  const fechaGen   = new Date().toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' })
 
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reporte — ${periodo}</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src https:; script-src 'unsafe-inline';">
+  <title>Reporte — ${periodoEsc}</title>
   <style>
     @media print {
       body { margin: 0; }
@@ -112,7 +144,6 @@ function renderHTML(reporte) {
   </style>
 </head>
 <body>
-  <!-- Botón de impresión (no aparece en PDF) -->
   <div class="no-print" style="position:fixed; top:16px; right:16px; z-index:100;">
     <button onclick="window.print()" style="background:#1B3A6B; color:#fff; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:14px;">
       Exportar PDF
@@ -120,29 +151,25 @@ function renderHTML(reporte) {
   </div>
 
   <div style="max-width:800px; margin:0 auto; padding:48px 32px;">
-    <!-- Cabecera white-label -->
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px; padding-bottom:24px; border-bottom:2px solid ${perfilAgencia?.colorPrimario ?? '#1B3A6B'};">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px; padding-bottom:24px; border-bottom:2px solid ${agenciaColor};">
       <div>${logoHTML}</div>
       <div style="text-align:right;">
         <div style="font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Reporte de rendimiento</div>
-        <div style="font-size:16px; font-weight:600; color:#1e293b; margin-top:4px;">${periodo}</div>
-        <div style="font-size:11px; color:#94a3b8; margin-top:2px;">Generado el ${new Date().toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' })}</div>
+        <div style="font-size:16px; font-weight:600; color:#1e293b; margin-top:4px;">${periodoEsc}</div>
+        <div style="font-size:11px; color:#94a3b8; margin-top:2px;">Generado el ${fechaGen}</div>
       </div>
     </div>
 
-    <!-- KPIs -->
     ${kpisHTML ? `
     <div style="margin-bottom:36px;">
       <h2 style="font-size:13px; text-transform:uppercase; letter-spacing:1.5px; color:#64748b; margin:0 0 16px;">Resultados del período</h2>
       <div style="display:flex; gap:12px; flex-wrap:wrap;">${kpisHTML}</div>
     </div>` : ''}
 
-    <!-- Narrativa ejecutiva -->
-    <div style="background:#f0f7ff; border-left:4px solid ${perfilAgencia?.colorPrimario ?? '#1B3A6B'}; border-radius:0 10px 10px 0; padding:24px; margin-bottom:36px;">
+    <div style="background:#f0f7ff; border-left:4px solid ${agenciaColor}; border-radius:0 10px 10px 0; padding:24px; margin-bottom:36px;">
       ${narrativaParrafos}
     </div>
 
-    <!-- Top campañas -->
     ${campanaFilas ? `
     <div style="margin-bottom:36px;">
       <h2 style="font-size:13px; text-transform:uppercase; letter-spacing:1.5px; color:#64748b; margin:0 0 16px;">Campañas principales</h2>
@@ -159,16 +186,14 @@ function renderHTML(reporte) {
       </table>
     </div>` : ''}
 
-    <!-- Alertas -->
     <div style="margin-bottom:36px;">
       <h2 style="font-size:13px; text-transform:uppercase; letter-spacing:1.5px; color:#64748b; margin:0 0 16px;">Puntos de atención</h2>
       <ul style="margin:0; padding-left:20px; line-height:1.8;">${alertasHTML}</ul>
     </div>
 
-    <!-- Footer -->
     <div style="border-top:1px solid #e2e8f0; padding-top:20px; display:flex; justify-content:space-between; align-items:center;">
-      <span style="font-size:12px; color:#94a3b8;">${perfilAgencia?.nombre ?? 'Tu agencia'} · Powered by ADSAI PRO</span>
-      <span style="font-size:12px; color:#94a3b8;">${perfilAgencia?.email ?? ''}</span>
+      <span style="font-size:12px; color:#94a3b8;">${agenciaNombre} · Powered by ADSAI PRO</span>
+      <span style="font-size:12px; color:#94a3b8;">${agenciaEmail}</span>
     </div>
   </div>
 </body>

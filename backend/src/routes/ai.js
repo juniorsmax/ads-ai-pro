@@ -9,6 +9,8 @@ const optimizer = require('../agents/optimizer')
 const copywriter = require('../agents/copywriter')
 const conversational = require('../agents/conversational')
 const { checkAccount } = require('../agents/alertMonitor')
+const weeklyResumen = require('../agents/weeklyResumen')
+const googleAds = require('../services/googleAds')
 const { registrarUso, estaIAPausada, getCosteDiario } = require('../services/tokenTracker')
 const { PLANES } = require('../services/stripe')
 const analytics = require('../services/analytics')
@@ -290,6 +292,39 @@ router.get('/alerts/:cuentaId', auth, async (req, res) => {
     .limit(20)
 
   res.json(data ?? [])
+})
+
+// ── POST /api/ai/resumen-semanal ─────────────────────────────────────────────
+router.post('/resumen-semanal', auth, ...checkIA, async (req, res) => {
+  const { cuentaId } = req.body
+  if (!cuentaId) return res.status(400).json({ error: 'cuentaId requerido' })
+
+  const cacheKey = `resumen_semanal:${cuentaId}`
+  const cached = await cache.get(cacheKey)
+  if (cached) return res.json({ ...cached, fromCache: true })
+
+  const [{ data: cuenta }, { data: usuario }] = await Promise.all([
+    supabase.from('cuentas_vinculadas').select('customer_id').eq('id', cuentaId).eq('usuario_id', req.user.userId).single(),
+    supabase.from('usuarios').select('google_refresh_token').eq('id', req.user.userId).single(),
+  ])
+  if (!cuenta) return res.status(404).json({ error: 'Cuenta no encontrada' })
+
+  const t0 = Date.now()
+  try {
+    const dias14 = await googleAds.get14DayMetrics(usuario.google_refresh_token, cuenta.customer_id)
+    if (!dias14.length) return res.status(400).json({ error: 'Sin datos de los últimos 14 días para generar el resumen' })
+
+    const { data, usage, model } = await weeklyResumen.generate(dias14)
+    await registrarUso(req.user.userId, 'resumen-semanal', model, usage)
+    await cache.set(cacheKey, data, 'CAMPAIGN_LIST')
+    analytics.aiAgentCompleted(req.user.userId, 'resumen-semanal', {
+      model, usage, latencyMs: Date.now() - t0, cuentaId,
+    })
+    res.json({ ...data, fromCache: false })
+  } catch (err) {
+    console.error('[Resumen semanal]', err.message)
+    res.status(500).json({ error: 'Error generando el resumen semanal' })
+  }
 })
 
 async function logIA(usuarioId, cuentaId, agente, input, output) {

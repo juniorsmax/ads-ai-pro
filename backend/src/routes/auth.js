@@ -43,16 +43,22 @@ router.post('/callback', authCallback, async (req, res) => {
     const payload = ticket.getPayload()
 
     // Guardar o actualizar usuario en Supabase
+    // Google solo devuelve refresh_token en el primer consentimiento —
+    // si es null no sobrescribimos el token existente
+    const datosUpsert = {
+      google_id: payload.sub,
+      email: payload.email,
+      nombre: payload.name,
+      avatar: payload.picture,
+      actualizado_en: new Date().toISOString(),
+    }
+    if (tokens.refresh_token) {
+      datosUpsert.google_refresh_token = tokens.refresh_token
+    }
+
     const { data: usuario, error } = await supabase
       .from('usuarios')
-      .upsert({
-        google_id: payload.sub,
-        email: payload.email,
-        nombre: payload.name,
-        avatar: payload.picture,
-        google_refresh_token: tokens.refresh_token,
-        actualizado_en: new Date().toISOString(),
-      }, { onConflict: 'google_id' })
+      .upsert(datosUpsert, { onConflict: 'google_id' })
       .select()
       .single()
 

@@ -1,10 +1,20 @@
 const router = require('express').Router()
+const { rateLimit } = require('express-rate-limit')
 const auth = require('../middleware/auth')
 const { injectPlan, requireFeature } = require('../middleware/planCheck')
 const { checkCircuitBreaker } = require('../middleware/planLimiter')
 const { generateReport, renderHTML } = require('../agents/reportGenerator')
 const supabase = require('../services/supabase')
 const cache = require('../services/cache')
+
+// Rate limit para el portal público — 20 req/hora por IP
+const limiterPortal = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => res.status(429).send('<h1>Demasiadas peticiones. Inténtalo más tarde.</h1>'),
+})
 
 // POST /api/reports/generate — genera reporte white-label
 router.post('/generate', auth, injectPlan, checkCircuitBreaker, async (req, res) => {
@@ -78,7 +88,7 @@ router.get('/', auth, async (req, res) => {
 })
 
 // GET /api/reports/portal/:token — acceso público al reporte (portal cliente)
-router.get('/portal/:token', async (req, res) => {
+router.get('/portal/:token', limiterPortal, async (req, res) => {
   const { data: acceso } = await supabase
     .from('portal_tokens')
     .select('reporte_id, expira_en')
