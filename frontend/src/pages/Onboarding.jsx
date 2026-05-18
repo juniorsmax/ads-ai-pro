@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { iniciarLoginGoogle, completarCallback, estaAutenticado } from '../api/auth'
+import { iniciarLoginGoogle, completarCallback, estaAutenticado, getUsuarioLocal } from '../api/auth'
 import { getCuentasAccesibles, vincularCuenta } from '../api/accounts'
+import { identifyUser, analytics } from '../lib/analytics'
+import { clarityIdentify, clarityTag } from '../lib/clarity'
 
 const PASOS = [
   { titulo: 'Conecta tu cuenta Google', descripcion: 'Autoriza el acceso seguro a tu cuenta de Google Ads.' },
@@ -23,8 +25,16 @@ export default function Onboarding() {
     if (code) {
       setCargando(true)
       completarCallback(code)
-        .then(() => {
+        .then((data) => {
           window.history.replaceState({}, '', '/onboarding')
+          // Identificar usuario en PostHog y Clarity con los datos reales del servidor
+          if (data?.usuario) {
+            const u = data.usuario
+            identifyUser(u.id, { email: u.email, plan: u.plan, createdAt: u.created_at })
+            clarityIdentify(u.id, null, null, u.email)
+            clarityTag('plan', u.plan ?? 'sin_plan')
+            analytics.userSignedIn(u.plan)
+          }
           setPaso(1)
           return getCuentasAccesibles()
         })
@@ -32,6 +42,13 @@ export default function Onboarding() {
         .catch(err => setError(err.message))
         .finally(() => setCargando(false))
     } else if (estaAutenticado()) {
+      // Sesión ya activa — re-identificar en caso de recarga de página
+      const u = getUsuarioLocal()
+      if (u) {
+        identifyUser(u.id, { email: u.email, plan: u.plan, createdAt: u.created_at })
+        clarityIdentify(u.id, null, null, u.email)
+        clarityTag('plan', u.plan ?? 'sin_plan')
+      }
       setPaso(1)
       getCuentasAccesibles().then(setCuentas).catch(() => {})
     }
@@ -41,6 +58,7 @@ export default function Onboarding() {
     setCargando(true)
     try {
       await vincularCuenta(cuenta.id, cuenta.descriptiveName)
+      analytics.googleAdsLinked(cuenta.id)
       setPaso(2)
     } catch (err) {
       setError(err.message)
@@ -88,7 +106,7 @@ export default function Onboarding() {
 
           {paso === 0 && (
             <button
-              onClick={iniciarLoginGoogle}
+              onClick={() => { analytics.onboardingStarted(); iniciarLoginGoogle() }}
               disabled={cargando}
               className="w-full py-3 bg-white text-slate-900 font-medium rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center gap-3 disabled:opacity-50"
             >

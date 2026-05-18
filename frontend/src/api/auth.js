@@ -1,4 +1,5 @@
 import { api } from './client'
+import { analytics } from '../lib/analytics'
 
 export async function iniciarLoginGoogle() {
   const { url } = await api.get('/auth/google')
@@ -20,6 +21,7 @@ export function getUsuarioLocal() {
 }
 
 export function cerrarSesion() {
+  analytics.userSignedOut()
   localStorage.removeItem('adsai_token')
   localStorage.removeItem('adsai_usuario')
   window.location.href = '/onboarding'

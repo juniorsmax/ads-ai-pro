@@ -19,6 +19,7 @@ import MultiPlatform from './pages/MultiPlatform'
 import Sidebar from './components/shared/Sidebar'
 import MobileNav from './components/shared/MobileNav'
 import FeedbackWidget from './components/shared/FeedbackWidget'
+import ErrorBoundary from './components/shared/ErrorBoundary'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,7 +38,7 @@ function AppLayout({ children }) {
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <main className="flex-1 overflow-y-auto bg-slate-950 pb-16 md:pb-0">
-        {children}
+        <ErrorBoundary>{children}</ErrorBoundary>
       </main>
       <MobileNav />
       <FeedbackWidget />
