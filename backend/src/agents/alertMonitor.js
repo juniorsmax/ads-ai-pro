@@ -2,6 +2,7 @@ const Anthropic = require('@anthropic-ai/sdk')
 const supabase = require('../services/supabase')
 const cache = require('../services/cache')
 const { registrarUso, estaIAPausada } = require('../services/tokenTracker')
+const analytics = require('../services/analytics')
 
 // Haiku para clasificaciones simples — 20x más barato que Sonnet
 const client = new Anthropic()
@@ -125,6 +126,18 @@ async function runForAllAccounts() {
         alertas: resultado.alertas,
         resumen: resultado.resumen,
       }).catch(() => {})
+
+      // Traquear cada alerta en PostHog para el embudo: alert_triggered → alert_viewed → acción
+      for (const alerta of resultado.alertas) {
+        analytics.alertTriggered(cuenta.usuario_id, cuenta.id, {
+          tipo: alerta.campana ? 'campana' : 'cuenta',
+          gravedad: alerta.severidad,
+          campanaId: alerta.campana ?? null,
+          metrica: alerta.mensaje,
+          valorActual: summaryActual?.cpaMedio ?? null,
+          valorAnterior: summaryAnterior?.cpaMedio ?? null,
+        })
+      }
     }
 
     resultados.push({ cuentaId: cuenta.id, ...resultado })
