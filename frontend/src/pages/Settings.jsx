@@ -4,6 +4,7 @@ import TopBar from '../components/shared/TopBar'
 import { usePushNotifications } from '../hooks/usePushNotifications'
 import { testPush } from '../api/push'
 import { api } from '../api/client'
+import { cerrarSesion } from '../api/auth'
 
 function SeccionCard({ titulo, children }) {
   return (
@@ -178,7 +179,7 @@ export default function Settings() {
           </FilaConfig>
           <FilaConfig label="Cerrar sesión" descripcion="">
             <button
-              onClick={() => { localStorage.removeItem('adsai_token'); window.location.href = '/onboarding' }}
+              onClick={cerrarSesion}
               className="text-xs px-3 py-1.5 border border-slate-700 hover:border-red-700 text-slate-400 hover:text-red-400 rounded-lg transition-colors"
             >
               Cerrar sesión

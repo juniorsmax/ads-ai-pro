@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
 import { chatIAStream } from '../../api/ai'
+import { analytics } from '../../lib/analytics'
 
 const BIENVENIDA = {
   rol: 'asistente',
@@ -59,6 +60,7 @@ export default function ChatPanel({ cuentaId }) {
     try {
       await chatIAStream(texto, historialActual, cuentaId, {}, (event, data) => {
         if (event === 'intent') {
+          analytics.aiChatSent(data.intent ?? 'general', cuentaId)
           setIntentLabel(INTENT_LABELS[data.intent] ?? 'Procesando...')
 
         } else if (event === 'delta') {

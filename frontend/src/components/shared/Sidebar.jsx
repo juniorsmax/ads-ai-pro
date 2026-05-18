@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getUsageIA } from '../../api/ai'
+import { getUsuarioLocal } from '../../api/auth'
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: '◈' },
@@ -58,6 +59,9 @@ function UsageBadge() {
 }
 
 export default function Sidebar() {
+  const usuario = getUsuarioLocal()
+  const inicial = (usuario?.nombre ?? usuario?.email ?? 'U')[0].toUpperCase()
+
   return (
     <aside className="w-16 md:w-56 flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col">
       <div className="p-4 border-b border-slate-800">
@@ -106,11 +110,11 @@ export default function Sidebar() {
         <UsageBadge />
         <div className="hidden md:flex items-center gap-2 px-3 py-2">
           <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-xs text-white font-bold shrink-0">
-            F
+            {inicial}
           </div>
           <div className="text-xs text-slate-400 min-w-0">
-            <p className="text-white font-medium truncate">Filiberto</p>
-            <p className="text-green-400">Plan Agencia</p>
+            <p className="text-white font-medium truncate">{usuario?.nombre ?? usuario?.email ?? '—'}</p>
+            <p className="text-green-400 capitalize">{usuario?.plan ?? 'Sin plan'}</p>
           </div>
         </div>
       </div>
