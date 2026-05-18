@@ -9,7 +9,9 @@ const NAV_ITEMS = [
   { to: '/optimizer', label: 'Optimizador', icon: '↕' },
   { to: '/copywriter', label: 'Copywriter', icon: '✎' },
   { to: '/reports', label: 'Reportes', icon: '◷' },
-  { to: '/competitors', label: 'Competidores', icon: '⊕' },
+  { to: '/competitors',   label: 'Competidores',  icon: '⊕' },
+  { to: '/multiplatform', label: 'Multi-canal',   icon: '⊞' },
+  { to: '/server',        label: 'Servidor VPS',  icon: '⬡' },
 ]
 
 const NAV_BOTTOM = [

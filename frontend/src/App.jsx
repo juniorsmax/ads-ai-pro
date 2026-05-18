@@ -14,6 +14,8 @@ import Onboarding from './pages/Onboarding'
 import Optimizer from './pages/Optimizer'
 import Copywriter from './pages/Copywriter'
 import Billing from './pages/Billing'
+import ServerMetrics from './pages/ServerMetrics'
+import MultiPlatform from './pages/MultiPlatform'
 import Sidebar from './components/shared/Sidebar'
 import MobileNav from './components/shared/MobileNav'
 import FeedbackWidget from './components/shared/FeedbackWidget'
@@ -64,6 +66,8 @@ export default function App() {
           <Route path="/competitors" element={<AppLayout><Competitors /></AppLayout>} />
           <Route path="/billing" element={<AppLayout><Billing /></AppLayout>} />
           <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
+          <Route path="/server" element={<AppLayout><ServerMetrics /></AppLayout>} />
+          <Route path="/multiplatform" element={<AppLayout><MultiPlatform /></AppLayout>} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

@@ -68,6 +68,8 @@ app.use('/api/keywords', require('./routes/keywords'))
 app.use('/api/settings', require('./routes/settings'))
 app.use('/api/feedback', require('./routes/feedback'))
 app.use('/api/push', require('./routes/push'))
+app.use('/api/hostinger', require('./routes/hostinger'))
+app.use('/api/supermetrics', require('./routes/supermetrics'))
 
 // ── Health & error handler ────────────────────────────────────────────────────
 
