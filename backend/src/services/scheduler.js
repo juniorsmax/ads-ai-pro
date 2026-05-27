@@ -2,7 +2,7 @@ const cron = require('node-cron')
 const { runForAllAccounts } = require('../agents/alertMonitor')
 const { weeklyReview } = require('./rulesEngine')
 const supabase = require('./supabase')
-const googleAds = require('./googleAds')
+const { snapshotQSCuenta } = require('../queues/snapshotQS')
 
 async function snapshotQSParaTodasLasCuentas() {
   const { data: cuentas } = await supabase
@@ -24,26 +24,7 @@ async function snapshotQSParaTodasLasCuentas() {
     if (!token) continue
 
     try {
-      const keywords = await googleAds.getQSSnapshot(token, cuenta.customer_id)
-      if (!keywords.length) continue
-
-      const hoy = new Date().toISOString().slice(0, 10)
-      const rows = keywords.map(k => ({
-        cuenta_id:               cuenta.id,
-        keyword_text:            k.keywordText,
-        keyword_resource_name:   k.keywordResourceName,
-        quality_score:           k.qualityScore,
-        creative_quality_score:  k.creativeQualityScore,
-        post_click_quality_score: k.postClickQualityScore,
-        search_predicted_ctr:    k.searchPredictedCtr,
-        fecha:                   hoy,
-      }))
-
-      await supabase
-        .from('qs_historico')
-        .upsert(rows, { onConflict: 'cuenta_id,keyword_text,fecha' })
-
-      console.log(`[Cron QS] Cuenta ${cuenta.id}: ${keywords.length} keywords guardadas`)
+      await snapshotQSCuenta(cuenta.id, cuenta.customer_id, token)
     } catch (err) {
       console.error(`[Cron QS] Error en cuenta ${cuenta.id}:`, err.message)
     }

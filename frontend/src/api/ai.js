@@ -70,3 +70,20 @@ export async function chatIAStream(mensaje, historial, cuentaId, objetivos = {},
     }
   }
 }
+
+// ── Polling de jobs encolados ─────────────────────────────────────────────────
+
+export const getJobResult = (jobId) =>
+  api.get(`/ai/job/${jobId}`)
+
+export async function waitForJob(jobId, { maxSegundos = 30, intervaloMs = 1500, onProgress } = {}) {
+  const maxIntentos = Math.floor((maxSegundos * 1000) / intervaloMs)
+  for (let i = 0; i < maxIntentos; i++) {
+    if (onProgress) onProgress(i + 1)
+    const { data } = await getJobResult(jobId)
+    if (data.estado === 'completado') return data.resultado
+    if (data.estado === 'fallido') throw new Error('El análisis falló. Inténtalo de nuevo.')
+    await new Promise(r => setTimeout(r, intervaloMs))
+  }
+  throw new Error('Tiempo de espera agotado. El análisis tardó demasiado.')
+}

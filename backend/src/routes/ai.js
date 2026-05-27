@@ -1,7 +1,6 @@
 const router = require('express').Router()
 const auth = require('../middleware/auth')
-const { chatPorUsuario, iaNoAuth } = require('../middleware/rateLimiter')
-const { checkIA } = require('../middleware/planLimiter')
+const { chatPorUsuario } = require('../middleware/rateLimiter')
 const { aiChat, aiAnalyze, aiOptimize, aiCopy, aiCopyAudit, aiAlertsCheck } = require('../middleware/validators')
 const orchestrator = require('../agents/orchestrator')
 const performanceAnalyst = require('../agents/performanceAnalyst')
@@ -16,12 +15,9 @@ const { PLANES } = require('../services/stripe')
 const analytics = require('../services/analytics')
 const supabase = require('../services/supabase')
 const cache = require('../services/cache')
-
-// Rate limit para IPs no autenticadas — aplicado antes de auth en todas las rutas de IA
-router.use(iaNoAuth)
+const { getQueue } = require('../queues/queueClient')
 
 // ── GET /api/ai/usage ────────────────────────────────────────────────────────
-// Devuelve el consumo del usuario: mensajes del mes, coste y estado del circuit breaker
 router.get('/usage', auth, async (req, res) => {
   const inicioMes = new Date()
   inicioMes.setDate(1)
@@ -55,7 +51,7 @@ router.get('/usage', auth, async (req, res) => {
   ])
 
   const plan = PLANES[usuario?.plan ?? 'basico'] ?? PLANES.basico
-  const limite = plan.chatMensual   // null = ilimitado
+  const limite = plan.chatMensual
   const usadas = usadasMes ?? 0
   const costeMes = costeRows?.reduce((acc, r) => acc + parseFloat(r.coste_usd ?? 0), 0) ?? 0
 
@@ -81,8 +77,7 @@ router.get('/usage', auth, async (req, res) => {
 })
 
 // ── POST /api/ai/chat ────────────────────────────────────────────────────────
-// Orquestador principal — respuesta completa (20 msg/hora por usuario)
-router.post('/chat', auth, chatPorUsuario, ...checkIA, aiChat, async (req, res) => {
+router.post('/chat', auth, chatPorUsuario, aiChat, async (req, res) => {
   const { mensaje, historial, cuentaId, objetivos } = req.body
   if (!mensaje?.trim()) return res.status(400).json({ error: 'Mensaje requerido' })
   const t0 = Date.now()
@@ -92,8 +87,6 @@ router.post('/chat', auth, chatPorUsuario, ...checkIA, aiChat, async (req, res) 
   try {
     const resultado = await orchestrator.handle({ mensaje, historial, accountSummary, objetivos })
 
-    // El primer elemento es detectIntent (Haiku, interno) → esPrincipal=false
-    // El resto son llamadas principales del usuario → esPrincipal=true
     const usages = resultado.usages ?? []
     for (let i = 0; i < usages.length; i++) {
       const { model, usage } = usages[i]
@@ -119,13 +112,11 @@ router.post('/chat', auth, chatPorUsuario, ...checkIA, aiChat, async (req, res) 
 })
 
 // ── POST /api/ai/chat/stream ─────────────────────────────────────────────────
-// Orquestador con streaming SSE — el texto llega en tiempo real
-// Eventos SSE: intent | delta | json | done | error
-router.post('/chat/stream', auth, chatPorUsuario, ...checkIA, aiChat, async (req, res) => {
+// SSE streaming — NO va a cola, síncrono siempre
+router.post('/chat/stream', auth, chatPorUsuario, aiChat, async (req, res) => {
   const { mensaje, historial, cuentaId, objetivos } = req.body
   if (!mensaje?.trim()) return res.status(400).json({ error: 'Mensaje requerido' })
 
-  // Cabeceras SSE
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
   res.setHeader('Connection', 'keep-alive')
@@ -138,12 +129,10 @@ router.post('/chat/stream', auth, chatPorUsuario, ...checkIA, aiChat, async (req
   try {
     const accountSummary = cuentaId ? await cache.get(`account_summary:${cuentaId}`) : null
 
-    // Paso 1 — detectIntent (síncrono, muy rápido con Haiku)
     const { intent, usage: usageIntent, model: modelIntent } = await orchestrator.detectIntent(mensaje)
     sse('intent', { intent })
     if (usageIntent) await registrarUso(req.user.userId, 'orquestador', modelIntent, usageIntent, false)
 
-    // Paso 2 — ejecutar agente con streaming cuando sea posible
     let finalUsage = null, finalModel = null
 
     if (intent === 'analyze' && accountSummary) {
@@ -160,7 +149,6 @@ router.post('/chat/stream', auth, chatPorUsuario, ...checkIA, aiChat, async (req
       finalUsage = usage; finalModel = model
 
     } else {
-      // general / fallback (también cubre 'analyze' sin datos de cuenta)
       if (intent === 'analyze' && !accountSummary) {
         sse('delta', { text: 'Necesito datos de tu cuenta para hacer el análisis. Sincroniza tu cuenta de Google Ads primero.' })
       } else {
@@ -182,13 +170,19 @@ router.post('/chat/stream', auth, chatPorUsuario, ...checkIA, aiChat, async (req
 })
 
 // ── POST /api/ai/analyze ─────────────────────────────────────────────────────
-router.post('/analyze', auth, ...checkIA, aiAnalyze, async (req, res) => {
+router.post('/analyze', auth, aiAnalyze, async (req, res) => {
   const { cuentaId } = req.body
   if (!cuentaId) return res.status(400).json({ error: 'cuentaId requerido' })
 
   const accountSummary = await cache.get(`account_summary:${cuentaId}`)
   if (!accountSummary) {
     return res.status(400).json({ error: 'Sincroniza la cuenta primero para obtener datos actuales' })
+  }
+
+  const queue = getQueue('ia_job')
+  if (queue) {
+    const job = await queue.add('ia_job', { userId: req.user.userId, agente: 'analyze', cuentaId, payload: {} })
+    return res.json({ jobId: job.id, status: 'queued' })
   }
 
   const t0 = Date.now()
@@ -207,13 +201,19 @@ router.post('/analyze', auth, ...checkIA, aiAnalyze, async (req, res) => {
 })
 
 // ── POST /api/ai/optimize ────────────────────────────────────────────────────
-router.post('/optimize', auth, ...checkIA, aiOptimize, async (req, res) => {
+router.post('/optimize', auth, aiOptimize, async (req, res) => {
   const { cuentaId, objetivos } = req.body
   if (!cuentaId) return res.status(400).json({ error: 'cuentaId requerido' })
 
   const accountSummary = await cache.get(`account_summary:${cuentaId}`)
   if (!accountSummary) {
     return res.status(400).json({ error: 'Sincroniza la cuenta primero' })
+  }
+
+  const queue = getQueue('ia_job')
+  if (queue) {
+    const job = await queue.add('ia_job', { userId: req.user.userId, agente: 'optimize', cuentaId, payload: { objetivos } })
+    return res.json({ jobId: job.id, status: 'queued' })
   }
 
   const t0 = Date.now()
@@ -232,17 +232,25 @@ router.post('/optimize', auth, ...checkIA, aiOptimize, async (req, res) => {
 })
 
 // ── POST /api/ai/copy ────────────────────────────────────────────────────────
-router.post('/copy', auth, ...checkIA, aiCopy, async (req, res) => {
+router.post('/copy', auth, aiCopy, async (req, res) => {
   const { tipo = 'RSA', keywords, perfilMarca, copiesActuales } = req.body
+
+  const queue = getQueue('ia_job')
+  if (queue) {
+    const job = await queue.add('ia_job', {
+      userId:  req.user.userId,
+      agente:  'copy',
+      payload: { tipo, keywords, perfilMarca, copiesActuales },
+    })
+    return res.json({ jobId: job.id, status: 'queued' })
+  }
 
   const t0 = Date.now()
   try {
     const { data: copies, usage, model } = await copywriter.generateCopy(tipo, { keywords, perfilMarca, copiesActuales })
     await registrarUso(req.user.userId, 'copywriter', model, usage)
     await logIA(req.user.userId, null, 'copywriter', tipo, JSON.stringify(copies))
-    analytics.aiAgentCompleted(req.user.userId, 'copywriter', {
-      model, usage, latencyMs: Date.now() - t0,
-    })
+    analytics.aiAgentCompleted(req.user.userId, 'copywriter', { model, usage, latencyMs: Date.now() - t0 })
     res.json(copies)
   } catch (err) {
     console.error('[AI copy]', err.message)
@@ -251,9 +259,19 @@ router.post('/copy', auth, ...checkIA, aiCopy, async (req, res) => {
 })
 
 // ── POST /api/ai/copy/audit ──────────────────────────────────────────────────
-router.post('/copy/audit', auth, ...checkIA, aiCopyAudit, async (req, res) => {
+router.post('/copy/audit', auth, aiCopyAudit, async (req, res) => {
   const { copies } = req.body
   if (!copies?.length) return res.status(400).json({ error: 'copies requeridos' })
+
+  const queue = getQueue('ia_job')
+  if (queue) {
+    const job = await queue.add('ia_job', {
+      userId:  req.user.userId,
+      agente:  'copy_audit',
+      payload: { copies },
+    })
+    return res.json({ jobId: job.id, status: 'queued' })
+  }
 
   try {
     const { data: auditoria, usage, model } = await copywriter.auditCopy(copies)
@@ -269,6 +287,17 @@ router.post('/copy/audit', auth, ...checkIA, aiCopyAudit, async (req, res) => {
 router.post('/alerts/check', auth, aiAlertsCheck, async (req, res) => {
   const { cuentaId } = req.body
   if (!cuentaId) return res.status(400).json({ error: 'cuentaId requerido' })
+
+  const queue = getQueue('ia_job')
+  if (queue) {
+    const job = await queue.add('ia_job', {
+      userId:  req.user.userId,
+      agente:  'alerts',
+      cuentaId,
+      payload: {},
+    })
+    return res.json({ jobId: job.id, status: 'queued' })
+  }
 
   const summaryActual   = await cache.get(`account_summary:${cuentaId}`)
   const summaryAnterior = await cache.get(`account_summary_prev:${cuentaId}`)
@@ -294,8 +323,21 @@ router.get('/alerts/:cuentaId', auth, async (req, res) => {
   res.json(data ?? [])
 })
 
+// ── GET /api/ai/job/:jobId ───────────────────────────────────────────────────
+router.get('/job/:jobId', auth, async (req, res) => {
+  const { data } = await supabase
+    .from('job_results')
+    .select('job_id, estado, resultado')
+    .eq('job_id', req.params.jobId)
+    .eq('usuario_id', req.user.userId)
+    .single()
+
+  if (!data) return res.status(404).json({ error: 'Job no encontrado' })
+  res.json({ jobId: data.job_id, estado: data.estado, resultado: data.resultado })
+})
+
 // ── POST /api/ai/resumen-semanal ─────────────────────────────────────────────
-router.post('/resumen-semanal', auth, ...checkIA, async (req, res) => {
+router.post('/resumen-semanal', auth, async (req, res) => {
   const { cuentaId } = req.body
   if (!cuentaId) return res.status(400).json({ error: 'cuentaId requerido' })
 

@@ -4,7 +4,7 @@ const helmet = require('helmet')
 const morgan = require('morgan')
 require('dotenv').config()
 
-const { general: limiterGeneral, ia: limiterIA, auth: limiterAuth, waitlist: limiterWaitlist } = require('./middleware/rateLimiter')
+const { sidecarIA, sidecarGeneral, sidecarAuth, sidecarWaitlist } = require('./middleware/sidecar')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -38,9 +38,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 
-// Rate limit general — 100 req/15min por IP
-app.use(limiterGeneral)
-
 // ── Parsers ──────────────────────────────────────────────────────────────────
 
 app.use(morgan(isProd ? 'combined' : 'dev'))
@@ -52,27 +49,25 @@ app.use('/api/billing/webhook', express.raw({ type: 'application/json' }))
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: false, limit: '10mb' }))
 
-// ── Rutas con rate limits específicos ────────────────────────────────────────
+// ── Rutas ─────────────────────────────────────────────────────────────────────
 
-app.use('/api/auth', limiterAuth, require('./routes/auth'))
-app.use('/api/ai', limiterIA, require('./routes/ai'))
-app.use('/api/waitlist', limiterWaitlist, require('./routes/waitlist'))
-
-// Rutas estándar (cubiertas por el rate limit general)
-app.use('/api/accounts', require('./routes/accounts'))
-app.use('/api/campaigns', require('./routes/campaigns'))
-app.use('/api/reports', require('./routes/reports'))
-app.use('/api/competitors', require('./routes/competitors'))
-app.use('/api/billing', require('./routes/stripe'))
-app.use('/api/keywords', require('./routes/keywords'))
-app.use('/api/settings', require('./routes/settings'))
-app.use('/api/feedback', require('./routes/feedback'))
-app.use('/api/push', require('./routes/push'))
-app.use('/api/hostinger', require('./routes/hostinger'))
-app.use('/api/supermetrics', require('./routes/supermetrics'))
-app.use('/api/auditoria', require('./routes/auditoria'))
-app.use('/api/integraciones', require('./routes/integraciones'))
-app.use('/api/optimizer', require('./routes/optimizer'))
+app.use('/api/auth',         sidecarAuth,     require('./routes/auth'))
+app.use('/api/waitlist',     sidecarWaitlist, require('./routes/waitlist'))
+app.use('/api/ai',           sidecarIA,       require('./routes/ai'))
+app.use('/api/accounts',     sidecarGeneral,  require('./routes/accounts'))
+app.use('/api/campaigns',    sidecarGeneral,  require('./routes/campaigns'))
+app.use('/api/reports',      sidecarGeneral,  require('./routes/reports'))
+app.use('/api/competitors',  sidecarGeneral,  require('./routes/competitors'))
+app.use('/api/billing',      sidecarGeneral,  require('./routes/stripe'))
+app.use('/api/keywords',     sidecarGeneral,  require('./routes/keywords'))
+app.use('/api/settings',     sidecarGeneral,  require('./routes/settings'))
+app.use('/api/feedback',     sidecarGeneral,  require('./routes/feedback'))
+app.use('/api/push',         sidecarGeneral,  require('./routes/push'))
+app.use('/api/hostinger',    sidecarGeneral,  require('./routes/hostinger'))
+app.use('/api/supermetrics', sidecarGeneral,  require('./routes/supermetrics'))
+app.use('/api/auditoria',    sidecarGeneral,  require('./routes/auditoria'))
+app.use('/api/integraciones',sidecarGeneral,  require('./routes/integraciones'))
+app.use('/api/optimizer',    sidecarGeneral,  require('./routes/optimizer'))
 
 // ── Health & error handler ────────────────────────────────────────────────────
 
@@ -89,6 +84,12 @@ const server = app.listen(PORT, () => {
   console.log(`ADSAI PRO backend corriendo en http://localhost:${PORT} [${process.env.NODE_ENV}]`)
   const { initScheduler } = require('./services/scheduler')
   initScheduler()
+
+  if (process.env.REDIS_URL) {
+    require('./queues/workers/iaWorker')
+    require('./queues/workers/syncWorker')
+    console.log('[Workers] iaWorker y syncWorker iniciados')
+  }
 })
 
 process.on('SIGTERM', () => {
