@@ -31,6 +31,13 @@ const NAV_GROUPS = [
       { to: '/reports', label: 'Reportes', icon: '◷' },
       { to: '/multiplatform', label: 'Multi-canal', icon: '⊞' },
       { to: '/auditoria', label: 'Auditoría', icon: '✦', nuevo: true },
+      { to: '/forecast', label: 'Predicciones IA', icon: '◈', nuevo: true },
+    ],
+  },
+  {
+    label: 'Automatización',
+    items: [
+      { to: '/automation', label: 'Autopilot', icon: '⚡', nuevo: true },
     ],
   },
 ]

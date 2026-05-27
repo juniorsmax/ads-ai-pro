@@ -19,6 +19,8 @@ import Billing from './pages/Billing'
 import ServerMetrics from './pages/ServerMetrics'
 import MultiPlatform from './pages/MultiPlatform'
 import Auditoria from './pages/Auditoria'
+import Forecast    from './pages/Forecast'
+import Automation  from './pages/Automation'
 import Sidebar from './components/shared/Sidebar'
 import MobileNav from './components/shared/MobileNav'
 import FeedbackWidget from './components/shared/FeedbackWidget'
@@ -84,6 +86,8 @@ export default function App() {
           <Route path="/server" element={<AppLayout><ServerMetrics /></AppLayout>} />
           <Route path="/multiplatform" element={<AppLayout><MultiPlatform /></AppLayout>} />
           <Route path="/auditoria" element={<AppLayout><Auditoria /></AppLayout>} />
+          <Route path="/forecast"    element={<AppLayout><Forecast /></AppLayout>} />
+          <Route path="/automation"  element={<AppLayout><Automation /></AppLayout>} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

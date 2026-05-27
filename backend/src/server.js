@@ -68,6 +68,8 @@ app.use('/api/supermetrics', sidecarGeneral,  require('./routes/supermetrics'))
 app.use('/api/auditoria',    sidecarGeneral,  require('./routes/auditoria'))
 app.use('/api/integraciones',sidecarGeneral,  require('./routes/integraciones'))
 app.use('/api/optimizer',    sidecarGeneral,  require('./routes/optimizer'))
+app.use('/api/forecast',    sidecarGeneral,  require('./routes/forecast'))
+app.use('/api/automation',  sidecarGeneral,  require('./routes/automation'))
 
 // ── Health & error handler ────────────────────────────────────────────────────
 
