@@ -164,9 +164,11 @@ async function weeklyReview() {
     const match  = texto.match(/\[[\s\S]*\]/)
     const updates = match ? JSON.parse(match[0]) : []
 
+    const validIds = new Set(rules.map(r => r.id))
     let actualizadas = 0
     for (const upd of updates) {
       if (!upd.id || upd.tasa_exito == null) continue
+      if (!validIds.has(upd.id)) continue
       const cambios = {
         tasa_exito:          Math.min(100, Math.max(0, upd.tasa_exito)),
         ultima_actualizacion: new Date().toISOString(),

@@ -4,7 +4,7 @@ import TopBar from '../components/shared/TopBar'
 import PageTabs from '../components/shared/PageTabs'
 import CopyCard from '../components/copywriter/CopyCard'
 import LoadingState from '../components/shared/LoadingState'
-import { generarCopy } from '../api/ai'
+import { generarCopy, waitForJob } from '../api/ai'
 import { analytics } from '../lib/analytics'
 
 const TIPOS = ['RSA', 'PMAX', 'DISPLAY']
@@ -19,17 +19,21 @@ function TabCopywriter() {
   const [perfilMarca, setPerfilMarca] = useState({ sector: '', tono: 'profesional', usps: '', restricciones: '' })
 
   const mutation = useMutation({
-    mutationFn: () => generarCopy(
-      tipo,
-      keywords.split(',').map(k => k.trim()).filter(Boolean),
-      {
-        sector: perfilMarca.sector,
-        tono:   perfilMarca.tono,
-        usps:   perfilMarca.usps.split(',').map(u => u.trim()).filter(Boolean),
-        restricciones: perfilMarca.restricciones,
-      },
-      []
-    ),
+    mutationFn: async () => {
+      const respuesta = await generarCopy(
+        tipo,
+        keywords.split(',').map(k => k.trim()).filter(Boolean),
+        {
+          sector: perfilMarca.sector,
+          tono:   perfilMarca.tono,
+          usps:   perfilMarca.usps.split(',').map(u => u.trim()).filter(Boolean),
+          restricciones: perfilMarca.restricciones,
+        },
+        []
+      )
+      if (respuesta?.status === 'queued') return waitForJob(respuesta.jobId)
+      return respuesta
+    },
     onSuccess: () => analytics.aiCopyGenerated(tipo),
   })
 
@@ -225,7 +229,8 @@ function TabRSAMasivo() {
       if (abortRef.current) break
       setResultados(prev => prev.map((f, j) => j === i ? { ...f, estado: 'generando' } : f))
       try {
-        const data = await generarCopy('RSA', filas[i].keywords, perfil, [])
+        const respuesta = await generarCopy('RSA', filas[i].keywords, perfil, [])
+        const data = respuesta?.status === 'queued' ? await waitForJob(respuesta.jobId) : respuesta
         setResultados(prev => prev.map((f, j) => j === i ? { ...f, estado: 'completado', data } : f))
         analytics.aiCopyGenerated('RSA_masivo')
       } catch (err) {

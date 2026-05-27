@@ -13,12 +13,14 @@ const worker = new Worker('ia_job', async (job) => {
   switch (agente) {
     case 'analyze': {
       const accountSummary = await cache.get(`account_summary:${cuentaId}`)
+      if (!accountSummary) throw new Error('Account summary no disponible en caché')
       const { data } = await performanceAnalyst.analyze(accountSummary, cuentaId)
       resultado = data
       break
     }
     case 'optimize': {
       const accountSummary = await cache.get(`account_summary:${cuentaId}`)
+      if (!accountSummary) throw new Error('Account summary no disponible en caché')
       const { data } = await optimizer.optimize(accountSummary, payload?.objetivos ?? {}, cuentaId)
       resultado = data
       break
@@ -35,6 +37,7 @@ const worker = new Worker('ia_job', async (job) => {
     }
     case 'alerts': {
       const summaryActual   = await cache.get(`account_summary:${cuentaId}`)
+      if (!summaryActual) throw new Error('Account summary no disponible en caché')
       const summaryAnterior = await cache.get(`account_summary_prev:${cuentaId}`)
       resultado = await checkAccount(cuentaId, summaryActual, summaryAnterior)
       break

@@ -70,8 +70,6 @@ async function activarCircuitBreaker(costeActual) {
   if (!redis) return
 
   const hoy = new Date().toISOString().slice(0, 10)
-  const yaAlertas = await redis.get(`ia:alerta_enviada:${hoy}`)
-  if (yaAlertas) return // Solo una alerta por día
 
   // Calcular segundos hasta medianoche
   const ahora  = new Date()
@@ -80,9 +78,11 @@ async function activarCircuitBreaker(costeActual) {
   manana.setHours(0, 0, 0, 0)
   const ttl = Math.ceil((manana - ahora) / 1000)
 
-  await redis.set('ia:pausado', '1', 'EX', ttl)
-  await redis.set(`ia:alerta_enviada:${hoy}`, '1', 'EX', ttl)
+  // NX garantiza atomicidad — evita que dos workers concurrentes envíen doble alerta
+  const adquirido = await redis.set(`ia:alerta_enviada:${hoy}`, '1', 'NX', 'EX', ttl)
+  if (!adquirido) return
 
+  await redis.set('ia:pausado', '1', 'EX', ttl)
   console.warn(`[tokenTracker] Coste diario $${costeActual.toFixed(4)} — IA pausada hasta medianoche`)
   await enviarAlertaEmail(costeActual)
 }

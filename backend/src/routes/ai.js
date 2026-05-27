@@ -13,6 +13,7 @@ const googleAds = require('../services/googleAds')
 const { registrarUso, estaIAPausada, getCosteDiario } = require('../services/tokenTracker')
 const { PLANES } = require('../services/stripe')
 const analytics = require('../services/analytics')
+const { decrypt } = require('../services/tokenCrypto')
 const supabase = require('../services/supabase')
 const cache = require('../services/cache')
 const { getQueue } = require('../queues/queueClient')
@@ -353,7 +354,7 @@ router.post('/resumen-semanal', auth, async (req, res) => {
 
   const t0 = Date.now()
   try {
-    const dias14 = await googleAds.get14DayMetrics(usuario.google_refresh_token, cuenta.customer_id)
+    const dias14 = await googleAds.get14DayMetrics(decrypt(usuario.google_refresh_token), cuenta.customer_id)
     if (!dias14.length) return res.status(400).json({ error: 'Sin datos de los últimos 14 días para generar el resumen' })
 
     const { data, usage, model } = await weeklyResumen.generate(dias14)

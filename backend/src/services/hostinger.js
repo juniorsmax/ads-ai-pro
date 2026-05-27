@@ -6,6 +6,7 @@ async function hFetch(path, options = {}) {
 
   const res = await fetch(`${BASE}${path}`, {
     ...options,
+    signal: AbortSignal.timeout(30_000),
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',

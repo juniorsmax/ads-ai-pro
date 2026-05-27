@@ -4,6 +4,7 @@ const { checkCircuitBreaker } = require('../middleware/planLimiter')
 const { analyzeCompetitors, getAuctionInsights } = require('../agents/competitorSpy')
 const supabase = require('../services/supabase')
 const cache = require('../services/cache')
+const { decrypt } = require('../services/tokenCrypto')
 
 // GET /api/competitors/:cuentaId — obtener análisis competitivo (con caché 24h)
 router.get('/:cuentaId', auth, checkCircuitBreaker, async (req, res) => {
@@ -29,7 +30,7 @@ router.get('/:cuentaId', auth, checkCircuitBreaker, async (req, res) => {
     .single()
 
   try {
-    const auctionInsights = await getAuctionInsights(usuario.google_refresh_token, cuenta.customer_id)
+    const auctionInsights = await getAuctionInsights(decrypt(usuario.google_refresh_token), cuenta.customer_id)
     const analisis = await analyzeCompetitors(auctionInsights, cuenta.customer_id)
 
     await cache.set(cacheKey, analisis, 'COMPETITOR_DATA')
@@ -43,6 +44,13 @@ router.get('/:cuentaId', auth, checkCircuitBreaker, async (req, res) => {
 // POST /api/competitors/:cuentaId/refresh — forzar refresco sin caché
 router.post('/:cuentaId/refresh', auth, async (req, res) => {
   const { cuentaId } = req.params
+  const { data: cuenta } = await supabase
+    .from('cuentas_vinculadas')
+    .select('id')
+    .eq('id', cuentaId)
+    .eq('usuario_id', req.user.userId)
+    .single()
+  if (!cuenta) return res.status(403).json({ error: 'Cuenta no encontrada' })
   await cache.del(`competitors:${cuentaId}`)
   res.json({ ok: true, mensaje: 'Caché invalidada. Recarga la página para obtener datos frescos.' })
 })

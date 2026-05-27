@@ -4,7 +4,7 @@ import TopBar from '../components/shared/TopBar'
 import PageTabs from '../components/shared/PageTabs'
 import RecomendacionCard from '../components/optimizer/RecomendacionCard'
 import LoadingState from '../components/shared/LoadingState'
-import { optimizarCuenta } from '../api/ai'
+import { optimizarCuenta, waitForJob } from '../api/ai'
 import { getPendientes, aprobarCambio, rechazarCambio } from '../api/auditoria'
 import { getCuentas } from '../api/accounts'
 import { useCuentaStore } from '../store/cuentaStore'
@@ -15,18 +15,22 @@ const TABS = [
   { id: 'aprobaciones',    label: 'Aprobaciones', nuevo: true },
 ]
 
-function TabRecomendaciones() {
+function TabRecomendaciones({ onIrAprobaciones }) {
   const [cuentaId, setCuentaId] = useState(null)
   const [objetivos, setObjetivos] = useState({ cpaObjetivo: '', roasObjetivo: '', presupuestoMensual: '' })
 
   const { data: cuentas = [] } = useQuery({ queryKey: ['cuentas'], queryFn: getCuentas })
 
   const mutation = useMutation({
-    mutationFn: () => optimizarCuenta(cuentaId, {
-      cpaObjetivo:        objetivos.cpaObjetivo        ? Number(objetivos.cpaObjetivo)        : null,
-      roasObjetivo:       objetivos.roasObjetivo       ? Number(objetivos.roasObjetivo)       : null,
-      presupuestoMensual: objetivos.presupuestoMensual ? Number(objetivos.presupuestoMensual) : null,
-    }),
+    mutationFn: async () => {
+      const respuesta = await optimizarCuenta(cuentaId, {
+        cpaObjetivo:        objetivos.cpaObjetivo        ? Number(objetivos.cpaObjetivo)        : null,
+        roasObjetivo:       objetivos.roasObjetivo       ? Number(objetivos.roasObjetivo)       : null,
+        presupuestoMensual: objetivos.presupuestoMensual ? Number(objetivos.presupuestoMensual) : null,
+      })
+      if (respuesta?.status === 'queued') return waitForJob(respuesta.jobId)
+      return respuesta
+    },
     onSuccess: () => analytics.aiOptimizerRun(cuentaId),
   })
 
@@ -102,7 +106,7 @@ function TabRecomendaciones() {
               Recomendaciones ({mutation.data.recomendaciones?.length ?? 0})
             </p>
             {mutation.data.recomendaciones?.map((rec, i) => (
-              <RecomendacionCard key={i} recomendacion={rec} onAplicar={(r) => console.log('Aplicar:', r)} />
+              <RecomendacionCard key={i} recomendacion={rec} onAplicar={onIrAprobaciones} />
             ))}
           </div>
         </div>
@@ -191,10 +195,10 @@ function TabAprobaciones() {
               <p className="text-white font-medium text-sm">{item.descripcion}</p>
               {item.razon && <p className="text-slate-400 text-xs mt-1">{item.razon}</p>}
             </div>
-            {item.impactoEstimado && (
+            {item.impacto_estimado && (
               <div className="text-right shrink-0">
                 <p className="text-xs text-slate-500">Impacto estimado</p>
-                <p className="text-green-400 font-medium text-sm">{item.impactoEstimado}</p>
+                <p className="text-green-400 font-medium text-sm">{item.impacto_estimado}</p>
               </div>
             )}
           </div>
@@ -235,7 +239,7 @@ export default function Optimizer() {
       <TopBar title="Optimizador IA" subtitle="Recomendaciones y aprobaciones — Agente 2" />
       <PageTabs tabs={TABS} active={tab} onChange={setTab} />
       <div className="p-6">
-        {tab === 'recomendaciones' && <TabRecomendaciones />}
+        {tab === 'recomendaciones' && <TabRecomendaciones onIrAprobaciones={() => setTab('aprobaciones')} />}
         {tab === 'aprobaciones'    && <TabAprobaciones />}
       </div>
     </div>

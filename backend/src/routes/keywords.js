@@ -1,4 +1,5 @@
 const router = require('express').Router()
+const { decrypt } = require('../services/tokenCrypto')
 const auth = require('../middleware/auth')
 const googleAds = require('../services/googleAds')
 const supabase = require('../services/supabase')
@@ -20,7 +21,7 @@ router.get('/:cuentaId', auth, async (req, res) => {
   if (!cuenta) return res.status(404).json({ error: 'Cuenta no encontrada' })
 
   try {
-    const keywords = await googleAds.getProblemKeywords(usuario.google_refresh_token, cuenta.customer_id)
+    const keywords = await googleAds.getProblemKeywords(decrypt(usuario.google_refresh_token), cuenta.customer_id)
     await cache.set(cacheKey, keywords, 'CAMPAIGN_LIST')
     res.json({ keywords, fromCache: false })
   } catch (err) {

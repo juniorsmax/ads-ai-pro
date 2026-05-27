@@ -47,8 +47,17 @@ export default function ChatPanel({ cuentaId }) {
   const [activo, setActivo] = useState(false)
   const [intentLabel, setIntentLabel] = useState(null)
   const bottomRef = useRef(null)
+  const abortRef = useRef(null)
+
+  useEffect(() => {
+    return () => abortRef.current?.abort()
+  }, [])
 
   const enviarMensaje = async (texto) => {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
     const historialActual = mensajes.slice(-10)
     setMensajes(prev => [...prev, { rol: 'usuario', texto }])
     setActivo(true)
@@ -93,8 +102,9 @@ export default function ChatPanel({ cuentaId }) {
             return copia
           })
         }
-      })
+      }, { signal: controller.signal })
     } catch (err) {
+      if (err.name === 'AbortError') return
       setMensajes(prev => {
         const copia = [...prev]
         copia[copia.length - 1] = {

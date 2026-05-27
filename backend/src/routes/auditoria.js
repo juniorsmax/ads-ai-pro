@@ -1,4 +1,5 @@
 const router = require('express').Router()
+const { decrypt } = require('../services/tokenCrypto')
 const auth = require('../middleware/auth')
 const googleAds = require('../services/googleAds')
 const ngramas = require('../services/ngramas')
@@ -15,6 +16,9 @@ async function getCuentaYUsuario(cuentaId, userId) {
     supabase.from('cuentas_vinculadas').select('customer_id').eq('id', cuentaId).eq('usuario_id', userId).single(),
     supabase.from('usuarios').select('google_refresh_token').eq('id', userId).single(),
   ])
+  if (usuario?.google_refresh_token) {
+    usuario.google_refresh_token = decrypt(usuario.google_refresh_token)
+  }
   return { cuenta, usuario }
 }
 

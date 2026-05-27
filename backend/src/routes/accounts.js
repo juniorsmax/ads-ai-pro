@@ -5,6 +5,7 @@ const googleAds = require('../services/googleAds')
 const cache = require('../services/cache')
 const { compressAccountData } = require('../utils/dataCompressor')
 const { linkAccount } = require('../middleware/validators')
+const { decrypt } = require('../services/tokenCrypto')
 
 // GET /api/accounts — listar cuentas vinculadas del usuario
 router.get('/', auth, async (req, res) => {
@@ -25,12 +26,13 @@ router.get('/accessible', auth, async (req, res) => {
     .eq('id', req.user.userId)
     .single()
 
-  if (!usuario?.google_refresh_token) {
+  const refreshToken = decrypt(usuario?.google_refresh_token)
+  if (!refreshToken) {
     return res.status(400).json({ error: 'No hay token de Google. Conecta tu cuenta primero.' })
   }
 
   try {
-    const cuentas = await googleAds.getAccessibleAccounts(usuario.google_refresh_token)
+    const cuentas = await googleAds.getAccessibleAccounts(refreshToken)
     res.json(cuentas)
   } catch (err) {
     console.error('[Accounts accessible]', err.message)
@@ -82,7 +84,7 @@ router.get('/:id/summary', auth, async (req, res) => {
     .single()
 
   try {
-    const raw = await googleAds.getAccountSummary(usuario.google_refresh_token, cuenta.customer_id)
+    const raw = await googleAds.getAccountSummary(decrypt(usuario.google_refresh_token), cuenta.customer_id)
     const summary = compressAccountData(raw)
     await cache.set(cacheKey, summary, 'ACCOUNT_SUMMARY')
     res.json(summary)

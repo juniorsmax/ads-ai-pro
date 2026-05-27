@@ -1,5 +1,4 @@
 const router = require('express').Router()
-const express = require('express')
 const auth = require('../middleware/auth')
 const stripeService = require('../services/stripe')
 const supabase = require('../services/supabase')
@@ -71,9 +70,8 @@ router.post('/portal', auth, async (req, res) => {
 })
 
 // POST /api/billing/webhook — eventos de Stripe (sin auth JWT, firma Stripe)
-router.post('/webhook',
-  express.raw({ type: 'application/json' }),
-  async (req, res) => {
+// express.raw() ya está aplicado globalmente en server.js para esta ruta
+router.post('/webhook', async (req, res) => {
     const sig = req.headers['stripe-signature']
     let event
     try {

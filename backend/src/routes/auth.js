@@ -3,6 +3,7 @@ const { OAuth2Client } = require('google-auth-library')
 const jwt = require('jsonwebtoken')
 const supabase = require('../services/supabase')
 const { authCallback } = require('../middleware/validators')
+const { encrypt } = require('../services/tokenCrypto')
 
 const oauthClient = new OAuth2Client(
   process.env.GOOGLE_ADS_CLIENT_ID,
@@ -53,7 +54,7 @@ router.post('/callback', authCallback, async (req, res) => {
       actualizado_en: new Date().toISOString(),
     }
     if (tokens.refresh_token) {
-      datosUpsert.google_refresh_token = tokens.refresh_token
+      datosUpsert.google_refresh_token = encrypt(tokens.refresh_token)
     }
 
     const { data: usuario, error } = await supabase

@@ -3,13 +3,14 @@ const auth = require('../middleware/auth')
 const googleAds = require('../services/googleAds')
 const supabase = require('../services/supabase')
 const cache = require('../services/cache')
+const { decrypt } = require('../services/tokenCrypto')
 
 async function getCuentaYToken(cuentaId, usuarioId) {
   const [{ data: cuenta }, { data: usuario }] = await Promise.all([
     supabase.from('cuentas_vinculadas').select('customer_id').eq('id', cuentaId).eq('usuario_id', usuarioId).single(),
     supabase.from('usuarios').select('google_refresh_token').eq('id', usuarioId).single(),
   ])
-  return { cuenta, refreshToken: usuario?.google_refresh_token }
+  return { cuenta, refreshToken: decrypt(usuario?.google_refresh_token) }
 }
 
 // GET /api/campaigns/:cuentaId — lista de campañas con métricas 30 días

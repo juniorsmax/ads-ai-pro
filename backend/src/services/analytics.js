@@ -33,7 +33,7 @@ const serverAnalytics = {
     // Estimación de coste según modelo (USD por 1M tokens de salida)
     const costMap = {
       'claude-sonnet-4-6': { in: 3.00, out: 15.00, cache: 0.30 },
-      'claude-haiku-4-5':  { in: 0.80, out: 4.00,  cache: 0.08 },
+      'claude-haiku-4-5':  { in: 0.25, out: 1.25,  cache: 0.03 },
     }
     const rates = costMap[model] ?? costMap['claude-sonnet-4-6']
     const costUsd = (

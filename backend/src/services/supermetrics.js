@@ -6,6 +6,7 @@ async function smFetch(path, body) {
 
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
+    signal: AbortSignal.timeout(30_000),
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',

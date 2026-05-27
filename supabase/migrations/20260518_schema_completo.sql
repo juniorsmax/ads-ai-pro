@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS reportes (
   id              UUID         DEFAULT gen_random_uuid() PRIMARY KEY,
   cuenta_id       UUID         REFERENCES cuentas_vinculadas(id) ON DELETE SET NULL,
   usuario_id      UUID         NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  tipo            TEXT         DEFAULT 'mensual',
   periodo         TEXT,
   contenido       TEXT,        -- HTML del reporte
   creado_en       TIMESTAMPTZ  DEFAULT NOW()

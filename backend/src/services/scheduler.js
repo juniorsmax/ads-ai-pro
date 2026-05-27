@@ -3,11 +3,13 @@ const { runForAllAccounts } = require('../agents/alertMonitor')
 const { weeklyReview } = require('./rulesEngine')
 const supabase = require('./supabase')
 const { snapshotQSCuenta } = require('../queues/snapshotQS')
+const { decrypt } = require('./tokenCrypto')
 
 async function snapshotQSParaTodasLasCuentas() {
   const { data: cuentas } = await supabase
     .from('cuentas_vinculadas')
     .select('id, customer_id, usuario_id')
+    .eq('activa', true)
 
   if (!cuentas?.length) return
 
@@ -17,7 +19,7 @@ async function snapshotQSParaTodasLasCuentas() {
     .select('id, google_refresh_token')
     .in('id', usuarioIds)
 
-  const tokenMap = Object.fromEntries((usuarios ?? []).map(u => [u.id, u.google_refresh_token]))
+  const tokenMap = Object.fromEntries((usuarios ?? []).map(u => [u.id, decrypt(u.google_refresh_token)]))
 
   for (const cuenta of cuentas) {
     const token = tokenMap[cuenta.usuario_id]

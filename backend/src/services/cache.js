@@ -28,7 +28,8 @@ async function get(key) {
 async function set(key, value, ttlKey = 'ACCOUNT_SUMMARY') {
   const client = getClient()
   if (!client) return
-  await client.set(key, JSON.stringify(value), 'EX', TTL[ttlKey] ?? 3600)
+  const ttl = typeof ttlKey === 'number' ? ttlKey : (TTL[ttlKey] ?? 3600)
+  await client.set(key, JSON.stringify(value), 'EX', ttl)
 }
 
 async function del(key) {

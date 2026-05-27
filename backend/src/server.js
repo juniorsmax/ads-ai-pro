@@ -8,7 +8,7 @@ const { sidecarIA, sidecarGeneral, sidecarAuth, sidecarWaitlist } = require('./m
 
 const app = express()
 const PORT = process.env.PORT || 3001
-const isProd = process.env.NODE_ENV === 'production'
+const isProd = process.env.NODE_ENV !== 'development'
 
 // Railway corre detrás de un proxy — necesario para req.ip correcto
 app.set('trust proxy', 1)
